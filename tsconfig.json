@@ -6,7 +6,10 @@
     "module": "nodenext",
     "target": "esnext",
     "types": [],
-    "allowImportingTsExtensions": true,
+    "noEmit": false,
+    "outDir": "src/dist",
+    "rootDir": "src",
+    "allowImportingTsExtensions": false,
 
     // Other Outputs
     "sourceMap": true,
