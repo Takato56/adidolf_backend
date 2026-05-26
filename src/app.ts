@@ -1,7 +1,7 @@
 import express, { type Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { env } from './config/env.config.ts'
+import { env } from './config/env.config.js'
 // import userRoutes from './routes/user.routes';
 // import { errorMiddleware } from './middleware/error.middleware';
 
