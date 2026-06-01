@@ -3,15 +3,14 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { env } from './config/env.config.js'
 // import userRoutes from './routes/user.routes';
-// import { errorMiddleware } from './middleware/error.middleware';
-import { UserModel } from './models/user.model.js'
+import productRoutes from "./routes/product.routes.js";
+import { errorMiddleware } from './middleware/error.middleware.js';
 
 const app: Application = express();
 
 // Middleware
 app.use(helmet());
 app.use(cors({
-    // Umcomment this line be4 merge to code
     origin: env.FRONTEND_URL,
     credentials: true,
 }));
@@ -25,7 +24,7 @@ app.get('/health', (_req, res) => {
 
 // Public
 // app.use('/api/auth',       authRoutes);
-// app.use('/api/products',   productRoutes);
+app.use('/api/products',   productRoutes);
 // app.use('/api/categories', categoryRoutes);
 
 // Authenticated users
@@ -37,7 +36,7 @@ app.get('/health', (_req, res) => {
 // Admin only
 // app.use('/api/admin', authMiddleware, adminMiddleware, adminRoutes);
 
-// Error handler (must be last)
-// app.use(errorMiddleware);
+// Error handler
+app.use(errorMiddleware);
 
 export default app;
