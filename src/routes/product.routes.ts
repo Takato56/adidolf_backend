@@ -5,7 +5,7 @@ import {
     getProductBySlug,
     createProduct,
     updateProduct,
-    deleteProduct,
+    deleteProduct
 } from '../controllers/product.controller.js';
 // import { authMiddleware } from '../middleware/auth.middleware.js';
 // import { adminMiddleware } from '../middleware/admin.middleware.js';
@@ -13,8 +13,8 @@ import {
 const router = Router();
 
 // ─── Public ───────────────────────────────────────────────
-router.get('/',           getAllProducts);
-router.get('/:id',        getProductById);
+router.get('/', getAllProducts);
+router.get('/:id', getProductById);
 router.get('/slug/:slug', getProductBySlug);
 
 // ─── Admin only ───────────────────────────────────────────

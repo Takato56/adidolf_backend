@@ -41,7 +41,6 @@ export interface ProductFilters {
 }
 
 const ProductModel = {
-
     async findAll(filters?: ProductFilters): Promise<Product[]> {
         let query = supabase
             .from('products')
@@ -120,12 +119,14 @@ const ProductModel = {
     async delete(id: number): Promise<void> {
         const { error } = await supabase
             .from('products')
-            .update({ is_published: false, updated_at: new Date().toISOString() })
+            .update({
+                is_published: false,
+                updated_at: new Date().toISOString()
+            })
             .eq('product_id', id);
 
         if (error) throw new Error(error.message);
-    },
-
+    }
 };
 
 export default ProductModel;

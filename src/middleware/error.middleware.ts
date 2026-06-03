@@ -28,7 +28,7 @@ export const errorMiddleware = (
     if (isOperational) {
         res.status(statusCode).json({
             status: 'error',
-            message: err.message,
+            message: err.message
         });
         return;
     }
@@ -38,7 +38,7 @@ export const errorMiddleware = (
         res.status(500).json({
             status: 'error',
             message: err.message,
-            stack: err.stack,
+            stack: err.stack
         });
         return;
     }
@@ -47,6 +47,6 @@ export const errorMiddleware = (
     console.error('UNEXPECTED ERROR:', err);
     res.status(500).json({
         status: 'error',
-        message: 'Something went wrong. Please try again later.',
+        message: 'Something went wrong. Please try again later.'
     });
 };

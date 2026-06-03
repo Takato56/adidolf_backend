@@ -1,45 +1,45 @@
 {
-  "name": "adidolf_backend",
-  "version": "1.0.0",
-  "description": "",
-  "homepage": "https://github.com/Takato56/adidolf_backend#readme",
-  "bugs": {
-    "url": "https://github.com/Takato56/adidolf_backend/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Takato56/adidolf_backend.git"
-  },
-  "license": "ISC",
-  "author": "",
-  "main": "src/server.ts",
-  "scripts": {
-    "build": "tsc",
-    "start": "node src/dist/server.js",
-    "dev": "nodemon --exec tsx src/server.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.106.1",
-    "argon2": "^0.44.0",
-    "cookie-parser": "^1.4.7",
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "helmet": "^8.2.0",
-    "jsonwebtoken": "^9.0.3",
-    "zod": "^4.4.3"
-  },
-  "devDependencies": {
-    "@types/cookie-parser": "^1.4.10",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^25.9.1",
-    "nodemon": "^3.1.14",
-    "prettier": "3.8.3",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.22.3",
-    "typescript": "^6.0.3"
-  }
+    "name": "adidolf_backend",
+    "version": "1.0.0",
+    "description": "",
+    "homepage": "https://github.com/Takato56/adidolf_backend#readme",
+    "bugs": {
+        "url": "https://github.com/Takato56/adidolf_backend/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Takato56/adidolf_backend.git"
+    },
+    "license": "ISC",
+    "author": "",
+    "main": "src/server.ts",
+    "scripts": {
+        "build": "tsc",
+        "start": "node src/dist/server.js",
+        "dev": "nodemon --exec tsx src/server.ts",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "dependencies": {
+        "@supabase/supabase-js": "^2.106.1",
+        "argon2": "^0.44.0",
+        "cookie-parser": "^1.4.7",
+        "cors": "^2.8.6",
+        "dotenv": "^17.4.2",
+        "express": "^5.2.1",
+        "helmet": "^8.2.0",
+        "jsonwebtoken": "^9.0.3",
+        "zod": "^4.4.3"
+    },
+    "devDependencies": {
+        "@types/cookie-parser": "^1.4.10",
+        "@types/cors": "^2.8.19",
+        "@types/express": "^5.0.6",
+        "@types/jsonwebtoken": "^9.0.10",
+        "@types/node": "^25.9.1",
+        "nodemon": "^3.1.14",
+        "prettier": "3.8.3",
+        "ts-node": "^10.9.2",
+        "tsx": "^4.22.3",
+        "typescript": "^6.0.3"
+    }
 }
