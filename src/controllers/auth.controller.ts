@@ -1,5 +1,4 @@
 import { type Request, type Response } from 'express';
-import { ZodError } from 'zod';
 import UserModel from '../models/user.model.js';
 import { supabase } from '../config/database.config.js';
 import { AppError } from '../middleware/error.middleware.js';
@@ -23,9 +22,7 @@ const COOKIE_OPTIONS = {
 export const register = async (req: Request, res: Response) => {
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
-        const messages = (parsed.error as ZodError).errors
-            .map((e: { message: any }) => e.message)
-            .join(', ');
+        const messages = parsed.error.issues.map((e) => e.message).join(', ');
         throw new AppError(messages, 400);
     }
 
@@ -50,9 +47,7 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
-        const messages = (parsed.error as ZodError).errors
-            .map((e) => e.message)
-            .join(', ');
+        const messages = parsed.error.issues.map((e) => e.message).join(', ');
         throw new AppError(messages, 400);
     }
 
