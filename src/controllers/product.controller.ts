@@ -1,14 +1,24 @@
 import { type Request, type Response } from 'express';
-import ProductModel, { CreateProductDto, UpdateProductDto, ProductFilters } from '../models/product.model';
+import ProductModel, {
+    CreateProductDto,
+    UpdateProductDto,
+    ProductFilters
+} from '../models/product.model';
 import { AppError } from '../middleware/error.middleware.js';
 
 export const getAllProducts = async (req: Request, res: Response) => {
     const filters: ProductFilters = {
-        category_id: req.query.category_id ? Number(req.query.category_id) : undefined,
-        brand:       req.query.brand       ? String(req.query.brand)       : undefined,
-        min_price:   req.query.min_price   ? Number(req.query.min_price)   : undefined,
-        max_price:   req.query.max_price   ? Number(req.query.max_price)   : undefined,
-        search:      req.query.search      ? String(req.query.search)      : undefined,
+        category_id: req.query.category_id
+            ? Number(req.query.category_id)
+            : undefined,
+        brand: req.query.brand ? String(req.query.brand) : undefined,
+        min_price: req.query.min_price
+            ? Number(req.query.min_price)
+            : undefined,
+        max_price: req.query.max_price
+            ? Number(req.query.max_price)
+            : undefined,
+        search: req.query.search ? String(req.query.search) : undefined
     };
 
     const products = await ProductModel.findAll(filters);
@@ -26,7 +36,7 @@ export const getProductById = async (req: Request, res: Response) => {
 };
 
 export const getProductBySlug = async (req: Request, res: Response) => {
-    const product = await ProductModel.findBySlug(req.params.slug);
+    const product = await ProductModel.findBySlug(req.params.slug as string);
     if (!product) throw new AppError('Product not found', 404);
 
     res.json({ status: 'success', data: product });
@@ -35,11 +45,11 @@ export const getProductBySlug = async (req: Request, res: Response) => {
 export const createProduct = async (req: Request, res: Response) => {
     const dto: CreateProductDto = {
         category_id: req.body.category_id,
-        name:        req.body.name,
-        slug:        req.body.slug,
+        name: req.body.name,
+        slug: req.body.slug,
         description: req.body.description,
-        base_price:  req.body.base_price,
-        brand:       req.body.brand,
+        base_price: req.body.base_price,
+        brand: req.body.brand
     };
 
     const product = await ProductModel.create(dto);
@@ -54,13 +64,13 @@ export const updateProduct = async (req: Request, res: Response) => {
     if (!existing) throw new AppError('Product not found', 404);
 
     const dto: UpdateProductDto = {
-        category_id:  req.body.category_id,
-        name:         req.body.name,
-        slug:         req.body.slug,
-        description:  req.body.description,
-        base_price:   req.body.base_price,
-        brand:        req.body.brand,
-        is_published: req.body.is_published,
+        category_id: req.body.category_id,
+        name: req.body.name,
+        slug: req.body.slug,
+        description: req.body.description,
+        base_price: req.body.base_price,
+        brand: req.body.brand,
+        is_published: req.body.is_published
     };
 
     const product = await ProductModel.update(id, dto);

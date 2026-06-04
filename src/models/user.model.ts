@@ -1,7 +1,7 @@
-import { supabase } from "../config/database.config.js";
+import { supabase } from '../config/database.config.js';
 
 export interface User {
-    id: string;
+    id: number;
     email: string;
     password_hash: string;
     full_name: string;
@@ -37,7 +37,7 @@ const UserModel = {
         return data;
     },
 
-    async findById(id: string): Promise<User | null> {
+    async findById(id: number): Promise<User | null> {
         const { data, error } = await supabase
             .from('users')
             .select('*')
@@ -72,14 +72,10 @@ const UserModel = {
     },
 
     async delete(id: string): Promise<void> {
-        const { error } = await supabase
-            .from('users')
-            .delete()
-            .eq('id', id);
+        const { error } = await supabase.from('users').delete().eq('id', id);
 
         if (error) throw new Error(error.message);
-    },
-
+    }
 };
 
 export default UserModel;
