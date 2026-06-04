@@ -27,19 +27,19 @@ app.get('/health', (_req, res) => {
 });
 
 // Public
-app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
-// app.use('/api/categories', categoryRoutes);
+app.use('/auth', authRoutes);
+app.use('/products', productRoutes);
+// app.use('/categories', categoryRoutes);
 
 // Authenticated users
-// app.use('/api/profile',  authMiddleware, profileRoutes);
+// app.use('/profile',  authMiddleware, profileRoutes);
 // import { authMiddleware } from './middleware/auth.middleware.js';
-// app.use('/api/cart',     authMiddleware, cartRoutes);
-// app.use('/api/orders',   authMiddleware, orderRoutes);
-// app.use('/api/wishlist', authMiddleware, wishlistRoutes);
+// app.use('/cart',     authMiddleware, cartRoutes);
+// app.use('/orders',   authMiddleware, orderRoutes);
+// app.use('/wishlist', authMiddleware, wishlistRoutes);
 
 // Admin only
-// app.use('/api/admin', authMiddleware, adminMiddleware, adminRoutes);
+// app.use('/admin', authMiddleware, adminMiddleware, adminRoutes);
 
 // Error handler
 app.use(errorMiddleware);
