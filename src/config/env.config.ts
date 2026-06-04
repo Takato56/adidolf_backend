@@ -31,6 +31,10 @@ export const env = {
     REFRESH_TOKEN_EXPIRES_IN: optional('REFRESH_TOKEN_EXPIRES_IN', '7d'),
 
     // Helpers
-    get isDev()  { return this.NODE_ENV === 'development'; },
-    get isProd() { return this.NODE_ENV === 'production'; },
+    get isDev() {
+        return this.NODE_ENV === 'development';
+    },
+    get isProd() {
+        return this.NODE_ENV === 'production';
+    }
 } as const;
