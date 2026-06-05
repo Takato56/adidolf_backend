@@ -1,9 +1,10 @@
 import { type Request, type Response } from 'express';
-import ProductModel, {
-    CreateProductDto,
-    UpdateProductDto,
-    ProductFilters
-} from '../models/product.model';
+import ProductModel from '../models/product.model.js';
+import {
+    type CreateProductDto,
+    type UpdateProductDto,
+    type ProductFilters
+} from '../types/product.types.js';
 import { AppError } from '../middleware/error.middleware.js';
 
 export const getAllProducts = async (req: Request, res: Response) => {

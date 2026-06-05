@@ -1,6 +1,7 @@
 import { type Request, type Response, type NextFunction } from 'express';
-import { AppError } from './error.middleware';
-import { verifyToken, type TokenPayload } from '../services/auth.service.js';
+import { AppError } from './error.middleware.js';
+import { verifyToken } from '../utils/auth.utils.js';
+import { type TokenPayload } from '../types/auth.types.js';
 
 declare global {
     namespace Express {

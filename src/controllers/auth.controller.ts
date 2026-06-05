@@ -1,13 +1,14 @@
 import { type Request, type Response } from 'express';
 import UserModel from '../models/user.model.js';
-import { supabase } from '../config/database.config.js';
+import RefreshTokenModel from '../models/refreshToken.model.js';
+import { supabase } from '../config/database/supabase.config';
 import { AppError } from '../middleware/error.middleware.js';
 import {
     hashPassword,
     comparePassword,
     generateTokens,
     verifyToken
-} from '../services/auth.service.js';
+} from '../utils/auth.utils.js';
 import { registerSchema, loginSchema } from '../validators/auth.validator.js';
 
 const REFRESH_COOKIE = 'refreshToken';
@@ -60,18 +61,25 @@ export const login = async (req: Request, res: Response) => {
     if (!valid) throw new AppError('Invalid credentials', 401);
 
     const { accessToken, refreshToken } = generateTokens({
-        userId: user.id,
+        userId: user.user_id,
         email: user.email,
         role: user.role
     });
 
     res.cookie(REFRESH_COOKIE, refreshToken, COOKIE_OPTIONS);
+
+    // Store refresh token in MongoDB
+    await RefreshTokenModel.create({
+        userId: user.user_id,
+        token: refreshToken,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Match COOKIE_OPTIONS.maxAge
+    });
+
     res.json({
         status: 'success',
         data: {
             accessToken,
             user: {
-                id: user.id,
                 email: user.email,
                 full_name: user.full_name,
                 role: user.role
@@ -87,7 +95,14 @@ export const refresh = async (req: Request, res: Response) => {
     let payload;
     try {
         payload = verifyToken(token, 'refresh');
+
+        // Check if token exists in MongoDB
+        const storedToken = await RefreshTokenModel.findOne({ token });
+        if (!storedToken) {
+            throw new Error('Token not found in database');
+        }
     } catch {
+        await RefreshTokenModel.deleteOne({ token });
         res.clearCookie(REFRESH_COOKIE, { path: '/' });
         throw new AppError('Refresh token expired or invalid', 403);
     }
@@ -98,11 +113,23 @@ export const refresh = async (req: Request, res: Response) => {
         role: payload.role
     });
 
+    // Replace old token with new one in MongoDB (Token Rotation)
+    await RefreshTokenModel.deleteOne({ token });
+    await RefreshTokenModel.create({
+        userId: payload.userId,
+        token: newRefreshToken,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    });
+
     res.cookie(REFRESH_COOKIE, newRefreshToken, COOKIE_OPTIONS);
     res.json({ status: 'success', data: { accessToken } });
 };
 
 export const logout = async (req: Request, res: Response) => {
+    const token: string | undefined = req.cookies?.[REFRESH_COOKIE];
+    if (token) {
+        await RefreshTokenModel.deleteOne({ token });
+    }
     res.clearCookie(REFRESH_COOKIE, { path: '/' });
     res.json({ status: 'success', message: 'Logged out' });
 };
