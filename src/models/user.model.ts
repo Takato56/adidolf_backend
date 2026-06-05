@@ -1,30 +1,5 @@
-import { supabase } from '../config/database.config.js';
-
-export interface User {
-    id: number;
-    email: string;
-    password_hash: string;
-    full_name: string;
-    phone?: string;
-    avatar_url?: string;
-    role: 'customer' | 'admin';
-    is_active: boolean;
-    created_at: string;
-    updated_at: string;
-}
-
-export interface CreateUserDto {
-    email: string;
-    password: string;
-    full_name: string;
-    phone?: string;
-}
-
-export interface UpdateUserDto {
-    full_name?: string;
-    phone?: string;
-    avatar_url?: string;
-}
+import { supabase } from '../config/database/supabase.config';
+import { type User, type UpdateUserDto } from '../types/user.types.js';
 
 const UserModel = {
     async findAll(): Promise<User[]> {
@@ -41,7 +16,7 @@ const UserModel = {
         const { data, error } = await supabase
             .from('users')
             .select('*')
-            .eq('id', id)
+            .eq('user_id', id)
             .single();
 
         if (error) return null;
@@ -63,7 +38,7 @@ const UserModel = {
         const { data, error } = await supabase
             .from('users')
             .update({ ...dto, updated_at: new Date().toISOString() })
-            .eq('id', id)
+            .eq('user_id', id)
             .select()
             .single();
 
@@ -72,7 +47,10 @@ const UserModel = {
     },
 
     async delete(id: string): Promise<void> {
-        const { error } = await supabase.from('users').delete().eq('id', id);
+        const { error } = await supabase
+            .from('users')
+            .delete()
+            .eq('user_id', id);
 
         if (error) throw new Error(error.message);
     }
