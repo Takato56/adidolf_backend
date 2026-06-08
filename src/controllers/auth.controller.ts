@@ -9,14 +9,15 @@ import {
     generateTokens,
     verifyToken
 } from '../utils/auth.utils.js';
+import { env } from '../config/env.config.js';
 import { registerSchema, loginSchema } from '../validators/auth.validator.js';
 
 const REFRESH_COOKIE = 'refreshToken';
 const COOKIE_OPTIONS = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: env.isProd,
     sameSite: 'strict' as const,
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: env.REFRESH_TOKEN_MAX_AGE,
     path: '/'
 };
 
@@ -72,7 +73,7 @@ export const login = async (req: Request, res: Response) => {
     await RefreshTokenModel.create({
         userId: user.user_id,
         token: refreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Match COOKIE_OPTIONS.maxAge
+        expiresAt: new Date(Date.now() + env.REFRESH_TOKEN_MAX_AGE) // Match COOKIE_OPTIONS.maxAge
     });
 
     res.json({
@@ -118,7 +119,7 @@ export const refresh = async (req: Request, res: Response) => {
     await RefreshTokenModel.create({
         userId: payload.userId,
         token: newRefreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        expiresAt: new Date(Date.now() + env.REFRESH_TOKEN_MAX_AGE)
     });
 
     res.cookie(REFRESH_COOKIE, newRefreshToken, COOKIE_OPTIONS);
