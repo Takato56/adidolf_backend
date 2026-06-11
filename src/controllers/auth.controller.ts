@@ -1,7 +1,6 @@
 import { type Request, type Response } from 'express';
 import UserModel from '../models/user.model.js';
 import RefreshTokenModel from '../models/refreshToken.model.js';
-import { supabase } from '../config/database/supabase.config';
 import { AppError } from '../middleware/error.middleware.js';
 import {
     hashPassword,
@@ -35,15 +34,14 @@ export const register = async (req: Request, res: Response) => {
 
     const password_hash = await hashPassword(password);
 
-    const { data, error } = await supabase
-        .from('users')
-        .insert({ email, password_hash, full_name, phone })
-        .select('user_id, email, full_name, phone, role, is_active, created_at')
-        .single();
+    const user = await UserModel.create({
+        email,
+        password_hash,
+        full_name,
+        phone
+    });
 
-    if (error) throw new AppError(error.message, 500);
-
-    res.status(201).json({ status: 'success', data });
+    res.status(201).json({ status: 'success', user });
 };
 
 export const login = async (req: Request, res: Response) => {

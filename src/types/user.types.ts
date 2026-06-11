@@ -11,11 +11,16 @@ export interface User {
     updated_at: string;
 }
 
-export interface CreateUserDto {
+// export interface PublicUser
+export interface PublicUser {
+    user_id: number;
     email: string;
-    password: string;
     full_name: string;
     phone?: string;
+    avatar_url?: string;
+    role: 'customer' | 'admin';
+    is_active: boolean;
+    created_at: string;
 }
 
 export interface UpdateUserDto {
