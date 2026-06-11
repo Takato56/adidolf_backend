@@ -2,12 +2,12 @@ import express, { type Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import { env } from './config/env.config.js';
-import authRoutes from './routes/auth.routes.js';
-import productRoutes from './routes/product.routes.js';
-import userRoutes from './routes/user.routes.js';
-import { errorMiddleware } from './middleware/error.middleware.js';
-import {authMiddleware} from "./middleware/auth.middleware";
+import { env } from './config/env.config';
+import authRoutes from './routes/auth.routes';
+import productRoutes from './routes/product.routes';
+import userRoutes from './routes/user.routes';
+import { errorMiddleware } from './middleware/error.middleware';
+import { authMiddleware } from './middleware/auth.middleware';
 
 const app: Application = express();
 

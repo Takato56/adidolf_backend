@@ -1,5 +1,10 @@
 import { supabase } from '../config/database/supabase.config';
-import { type User, type UpdateUserDto } from '../types/user.types.js';
+import {
+    type User,
+    type UpdateUserDto,
+    PublicUser
+} from '../types/user.types.js';
+import { RegisterDto } from '../types/auth.types';
 
 const UserModel = {
     async findAll(): Promise<User[]> {
@@ -31,6 +36,19 @@ const UserModel = {
             .single();
 
         if (error) return null;
+        return data;
+    },
+
+    async create(dto: RegisterDto): Promise<PublicUser> {
+        const { data, error } = await supabase
+            .from('users')
+            .insert(dto)
+            .select(
+                'user_id, email, full_name, phone, avatar_url, role, is_active, created_at'
+            )
+            .single();
+
+        if (error) throw new Error(error.message);
         return data;
     },
 
