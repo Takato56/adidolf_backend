@@ -6,6 +6,7 @@ import { env } from './config/env.config';
 import authRoutes from './routes/auth.routes';
 import productRoutes from './routes/product.routes';
 import userRoutes from './routes/user.routes';
+import categoryRoutes from './routes/category.routes';
 import { errorMiddleware } from './middleware/error.middleware';
 import { authMiddleware } from './middleware/auth.middleware';
 
@@ -31,7 +32,7 @@ app.get('/health', (_req, res) => {
 // Public
 app.use('/auth', authRoutes);
 app.use('/products', productRoutes);
-// app.use('/categories', categoryRoutes);
+app.use('/categories', categoryRoutes);
 
 // Authenticated users
 app.use('/user', authMiddleware, userRoutes);
