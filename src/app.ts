@@ -8,7 +8,6 @@ import productRoutes from './routes/product.routes';
 import userRoutes from './routes/user.routes';
 import categoryRoutes from './routes/category.routes';
 import { errorMiddleware } from './middleware/error.middleware';
-import { authMiddleware } from './middleware/auth.middleware';
 
 const app: Application = express();
 
@@ -35,7 +34,7 @@ app.use('/products', productRoutes);
 app.use('/categories', categoryRoutes);
 
 // Authenticated users
-app.use('/user', authMiddleware, userRoutes);
+app.use('/user', userRoutes);
 // app.use('/cart',     authMiddleware, cartRoutes);
 // app.use('/orders',   authMiddleware, orderRoutes);
 // app.use('/wishlist', authMiddleware, wishlistRoutes);

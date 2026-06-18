@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { getProfile } from '../controllers/user.controller.js';
-// import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
 
-router.get('/me', getProfile);
+router.get('/me', authMiddleware, getProfile);
 
 export default router;
