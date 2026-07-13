@@ -1,118 +1,273 @@
 # Adidolf Backend
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-blue.svg)](https://www.typescriptlang.org/)
-[![Express](https://img.shields.io/badge/Express-5.2-lightgrey.svg)](https://expressjs.com/)
-[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green.svg)](https://supabase.com/)
+TypeScript Express backend for the Adidolf e-commerce API. The app uses Supabase Postgres for relational data, Supabase Storage for product images, JWT access tokens for authenticated requests, and HTTP-only refresh-token cookies for session rotation.
 
-A robust TypeScript Express backend for **Adidolf**, an e-commerce platform. This API leverages Supabase Postgres for data persistence and Supabase Storage for managing product assets.
+## Stack
 
-## 🚀 Features
+- Node.js with TypeScript
+- Express 5
+- Supabase Postgres and Supabase Storage
+- Argon2 password hashing
+- JSON Web Tokens
+- Zod request validation
+- Multer multipart upload handling
+- Node's built-in test runner via `tsx`
 
--   **Secure Authentication**: JWT-based auth with access and refresh tokens using Argon2 hashing.
--   **Dynamic Admin Dashboard**: Configuration-driven CRUD routes for managing database resources efficiently.
--   **Advanced Product Management**:
-    -   Support for categories, variants (size, color, SKU), and multiple images.
-    -   Integrated image upload to Supabase Storage with automatic URL mapping.
-    -   Slug-based routing for SEO-friendly product pages.
--   **Data Integrity**: Strict request validation using Zod schemas.
--   **Middleware-Driven**: Dedicated layers for error handling, authentication, and admin authorization.
--   **Scalable Architecture**: Clean separation of concerns (Controllers, Models, Services, Validators).
+## Features
 
-## 🛠 Tech Stack
+- Customer registration, login, refresh-token rotation, and logout.
+- Access-token authentication middleware and admin-role authorization middleware.
+- Public category and product read routes.
+- Admin-only category and product management.
+- Product images stored either as direct image URLs or uploaded files in Supabase Storage.
+- Dynamic admin CRUD routes generated from `src/config/resource.config.ts`.
+- Central error handling for operational errors, validation failures, and unexpected failures.
+- Development-database integration tests that exercise the real route/model paths.
 
--   **Runtime**: [Node.js](https://nodejs.org/) with [tsx](https://github.com/privatenumber/tsx) for development.
--   **Framework**: [Express.js 5](https://expressjs.com/) (latest beta/v5 features).
--   **Language**: [TypeScript 6](https://www.typescriptlang.org/).
--   **Database & Storage**: [Supabase](https://supabase.com/) (Postgres + Storage).
--   **Security**: [Argon2](https://github.com/ranisalt/node-argon2) for password hashing, [JWT](https://github.com/auth0/node-jsonwebtoken) for sessions, and [Helmet](https://helmetjs.github.io/) for HTTP headers.
--   **Validation**: [Zod](https://zod.dev/).
--   **File Handling**: [Multer](https://github.com/expressjs/multer) for multipart image uploads.
+## Requirements
 
-## ⚙️ Setup
+- Node.js 18 or newer
+- npm
+- A Supabase project with the schema from `database.sql`
+- A Supabase Storage bucket for product images
 
-### Prerequisites
+## Environment
 
--   Node.js (v18+ recommended)
--   A Supabase project and credentials
+Create `.env` from `.env.example`:
 
-### Installation
+```bash
+cp .env.example .env
+```
 
-1.  Clone the repository:
-    ```bash
-    git clone https://github.com/Takato56/adidolf_backend.git
-    cd adidolf_backend
-    ```
+Required variables:
 
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
+```env
+PORT=5678
+FRONTEND_URL=http://localhost:3000
 
-3.  Configure Environment Variables:
-    Copy the example file and fill in your details:
-    ```bash
-    cp .env.example .env
-    ```
-    Required keys:
-    - `DATABASE_URL` / Supabase connection strings
-    - `SUPABASE_URL` & `SUPABASE_ANON_KEY`
-    - `JWT_ACCESS_SECRET` & `JWT_REFRESH_SECRET`
-    - `SUPABASE_PRODUCT_IMAGE_BUCKET` (Default: `product-images`)
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+SUPABASE_PRODUCT_IMAGE_BUCKET=product-images
 
-4.  **Supabase Storage**: Ensure a bucket named `product-images` (or your custom name) exists in your Supabase project and is set to "Public" if you want direct URL access.
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=7d
+JWT_REFRESH_SECRET=your_jwt_refresh_secret
+JWT_REFRESH_EXPIRES_IN=7d
 
-## 🚦 Running the App
+NODE_ENV=development
+```
 
-### Development
+`SUPABASE_SERVICE_ROLE_KEY` is preferred for backend database operations. If it is not set, the app falls back to `SUPABASE_ANON_KEY`.
+
+## Installation
+
+```bash
+npm install
+```
+
+## Running
+
+Development:
+
 ```bash
 npm run dev
 ```
-The server will start on the port defined in `.env` (defaulting to `3000`).
 
-### Production Build
+Production build:
+
 ```bash
 npm run build
 npm start
 ```
 
-## 📖 API Documentation
+Health check:
 
-### Authentication
--   `POST /auth/register` - Create a new account.
--   `POST /auth/login` - Authenticate and receive tokens.
--   `POST /auth/refresh` - Rotate access tokens using a refresh token.
--   `POST /auth/logout` - Invalidate session.
+```http
+GET /health
+```
 
-### Products & Images
--   `GET /products` - List all products.
--   `GET /products/:id` - Get detailed product info.
--   `GET /products/slug/:slug` - Find product by URL slug.
--   `POST /products/:id/images/upload` - Upload multiple images to Supabase (Admin only).
--   `DELETE /products/:id/images/:imageId` - Remove image from DB and Storage (Admin only).
+Response:
 
-### Categories
--   `GET /categories` - List all categories.
--   `POST /categories` - Create new category (Admin only).
+```json
+{ "status": "ok" }
+```
 
-### Admin Tools
--   `GET /admin` - List all manageable resources.
--   `GET /admin/:resource` - Dynamic CRUD access for system resources.
+## Testing
 
-## 📂 Project Structure
+Run the full suite:
+
+```bash
+npm test
+```
+
+Run with coverage:
+
+```bash
+npm run test:coverage
+```
+
+Important: tests use the current development environment and write sample records through the normal API/model logic. They create identifiable `codex-*` sample data in Supabase, upload sample product images to the configured storage bucket, and exercise protected admin routes with generated JWTs. The test runner uses single concurrency to reduce race conditions against shared development services.
+
+Current coverage is about 97% line coverage across `src`.
+
+## Authentication
+
+Access tokens are returned in the login response and should be sent as:
+
+```http
+Authorization: Bearer <accessToken>
+```
+
+Refresh tokens are stored in an HTTP-only `refreshToken` cookie and persisted in the `users_tokens` table. Refresh rotates the token by deleting the old database token and inserting a new one.
+
+### Auth Routes
+
+| Method | Path             | Auth           | Description                                            |
+| ------ | ---------------- | -------------- | ------------------------------------------------------ |
+| `POST` | `/auth/register` | Public         | Create a customer account.                             |
+| `POST` | `/auth/login`    | Public         | Login and receive an access token plus refresh cookie. |
+| `POST` | `/auth/refresh`  | Refresh cookie | Rotate refresh token and return a new access token.    |
+| `POST` | `/auth/logout`   | Access token   | Delete refresh token if present and clear cookie.      |
+
+## User Routes
+
+| Method | Path       | Auth         | Description                                                |
+| ------ | ---------- | ------------ | ---------------------------------------------------------- |
+| `GET`  | `/user/me` | Access token | Return the current token payload without sensitive fields. |
+
+## Category Routes
+
+| Method   | Path              | Auth   | Description                                                                   |
+| -------- | ----------------- | ------ | ----------------------------------------------------------------------------- |
+| `GET`    | `/categories`     | Public | List categories. Supports `?sort=name`.                                       |
+| `GET`    | `/categories/:id` | Public | Get one category by ID.                                                       |
+| `POST`   | `/categories`     | Admin  | Create a category. Slug is generated from name if omitted.                    |
+| `PUT`    | `/categories/:id` | Admin  | Update a category. Slug is regenerated when name changes and slug is omitted. |
+| `DELETE` | `/categories/:id` | Admin  | Delete a category if no products are assigned.                                |
+
+Category slugs must be lowercase alphanumeric values separated by single hyphens.
+
+## Product Routes
+
+| Method   | Path                            | Auth   | Description                                                              |
+| -------- | ------------------------------- | ------ | ------------------------------------------------------------------------ |
+| `GET`    | `/products`                     | Public | List published products.                                                 |
+| `GET`    | `/products/:id`                 | Public | Get one published product by ID.                                         |
+| `GET`    | `/products/slug/:slug`          | Public | Get one published product by slug.                                       |
+| `POST`   | `/products`                     | Admin  | Create a product. Slug is generated from name if omitted.                |
+| `PUT`    | `/products/:id`                 | Admin  | Update a product.                                                        |
+| `DELETE` | `/products/:id`                 | Admin  | Soft-delete a product by setting `is_published` to `false`.              |
+| `GET`    | `/products/:id/images`          | Public | List product images.                                                     |
+| `POST`   | `/products/:id/images`          | Admin  | Create product image records from JSON URLs.                             |
+| `POST`   | `/products/:id/images/upload`   | Admin  | Upload image files to Supabase Storage and create image records.         |
+| `PATCH`  | `/products/:id/images/:imageId` | Admin  | Update one product image record.                                         |
+| `DELETE` | `/products/:id/images/:imageId` | Admin  | Delete one product image record and remove storage object when possible. |
+
+Product list filters:
+
+| Query         | Description                           |
+| ------------- | ------------------------------------- |
+| `category_id` | Positive integer category ID.         |
+| `brand`       | Exact brand match.                    |
+| `min_price`   | Minimum base price.                   |
+| `max_price`   | Maximum base price.                   |
+| `search`      | Case-insensitive product-name search. |
+
+Product upload details:
+
+- Multipart field name: `images`
+- Maximum files: 10
+- Maximum file size: 5 MB each
+- Accepted MIME types: `image/*`
+- Optional metadata fields: `alt_text`, `is_primary`, `sort_order`
+- For multiple files, metadata fields may be repeated and are matched by file order.
+
+## Dynamic Admin CRUD
+
+All dynamic admin routes require both a valid access token and `role: "admin"` in the token payload.
+
+| Method   | Path                   | Description                                           |
+| -------- | ---------------------- | ----------------------------------------------------- |
+| `GET`    | `/admin`               | List configured admin resources.                      |
+| `GET`    | `/admin/:resource`     | List records with filtering, sorting, and pagination. |
+| `POST`   | `/admin/:resource`     | Create a record using configured allowed fields.      |
+| `GET`    | `/admin/:resource/:id` | Get one record by primary key.                        |
+| `PUT`    | `/admin/:resource/:id` | Update a record using configured allowed fields.      |
+| `PATCH`  | `/admin/:resource/:id` | Update a record using configured allowed fields.      |
+| `DELETE` | `/admin/:resource/:id` | Delete a record.                                      |
+
+List query options:
+
+| Query                    | Description                                               |
+| ------------------------ | --------------------------------------------------------- |
+| `limit`                  | Integer from 1 to 100.                                    |
+| `offset`                 | Non-negative integer.                                     |
+| `sort`                   | Must be one of the configured sort/filter/default fields. |
+| `order`                  | `asc` or `desc`.                                          |
+| configured filter fields | Exact-match filters for the resource.                     |
+
+Configured resources:
+
+- `users`
+- `addresses`
+- `categories`
+- `products`
+- `product-variants`
+- `product-images`
+- `vouchers`
+- `carts`
+- `cart-items`
+- `orders`
+- `order-items`
+- `payments`
+- `shipments`
+- `reviews`
+- `voucher-redemptions`
+
+`users_tokens` is used by the auth flow but is not exposed as a dynamic admin resource.
+
+## Project Structure
 
 ```text
 src/
-├── config/       # App configurations (Supabase, Auth, CRUD resources)
-├── controllers/  # Request handlers & logic orchestration
-├── middleware/   # Auth, Admin check, Error handling, Multer
-├── models/       # Data access layer (Supabase clients)
-├── routes/       # API endpoint definitions
-├── services/     # Shared business logic & storage helpers
-├── types/        # TypeScript interfaces & DTOs
-├── utils/        # Shared utility functions (token gen, etc.)
-└── validators/   # Zod schemas for request validation
+  app.ts                    Express app setup and route mounting
+  server.ts                 HTTP server entrypoint
+  config/
+    env.config.ts           Environment variables and helpers
+    resource.config.ts      Dynamic admin CRUD resource definitions
+    supabase.config.ts      Supabase client singleton
+  controllers/              Route handlers
+  middleware/               Auth, admin, upload, and error middleware
+  models/                   Supabase data-access layer
+  routes/                   Express routers
+  services/                 Storage helpers
+  types/                    TypeScript DTOs and domain types
+  utils/                    Auth, slug, and database-error helpers
+  validators/               Zod request schemas
+tests/
+  config/                   Config helper tests
+  integration/              Development DB-backed API path tests
+  middleware/               Middleware tests
+  models/                   Model tests
+  services/                 Service tests
+  utils/                    Utility tests
+  validators/               Zod schema tests
 ```
 
-## 📜 License
+## Data Model
 
-This project is licensed under the [ISC License](LICENSE).
+The schema in `database.sql` includes users, refresh tokens, addresses, categories, products, product variants, product images, vouchers, carts, cart items, orders, order items, payments, shipments, reviews, and voucher redemptions.
+
+Key behavior in code:
+
+- Products reference categories.
+- Product reads only return published products unless an admin write path explicitly includes unpublished products.
+- Product deletion is a soft delete.
+- Category deletion is blocked when products still reference the category.
+- Product image primary status is normalized so only one image is primary for a product.
+- Refresh tokens are stored in `users_tokens`.
+
+## License
+
+ISC

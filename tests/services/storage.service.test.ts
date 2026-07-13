@@ -1,6 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { getProductImageStoragePathFromUrl } from '../../src/services/storage.service.js';
+import {
+    deleteProductImageFromStorageUrl,
+    getProductImageStoragePathFromUrl
+} from '../../src/services/storage.service.js';
 
 describe('storage service', () => {
     const bucket =
@@ -28,5 +31,10 @@ describe('storage service', () => {
             null
         );
         assert.equal(getProductImageStoragePathFromUrl('not-a-url'), null);
+    });
+
+    it('does nothing when asked to delete an unrelated image URL', async () => {
+        await deleteProductImageFromStorageUrl('https://example.com/image.jpg');
+        await deleteProductImageFromStorageUrl('not-a-url');
     });
 });

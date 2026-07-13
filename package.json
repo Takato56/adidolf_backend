@@ -17,7 +17,8 @@
         "build": "tsc",
         "start": "node dist/server.js",
         "dev": "nodemon --exec tsx src/server.ts",
-        "test": "tsx --import ./tests/setup-env.ts --test tests/**/*.test.ts"
+        "test": "tsx --import ./tests/setup-env.ts --test --test-concurrency=1 tests/**/*.test.ts",
+        "test:coverage": "tsx --import ./tests/setup-env.ts --test --test-concurrency=1 --experimental-test-coverage tests/**/*.test.ts"
     },
     "dependencies": {
         "@supabase/supabase-js": "^2.106.1",
