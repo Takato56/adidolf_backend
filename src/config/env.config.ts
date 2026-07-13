@@ -21,7 +21,11 @@ export const env = {
     // Database env
     SUPABASE_URL: optional('SUPABASE_URL', 'localhost'),
     SUPABASE_ANON_KEY: optional('SUPABASE_ANON_KEY', 'localhost'),
-    MONGODB_URI: required('MONGODB_URI'),
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    SUPABASE_PRODUCT_IMAGE_BUCKET: optional(
+        'SUPABASE_PRODUCT_IMAGE_BUCKET',
+        'product-images'
+    ),
     // JWT env
     JWT_SECRET: required('JWT_SECRET'),
     JWT_REFRESH_SECRET: required('JWT_REFRESH_SECRET'),

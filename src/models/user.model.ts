@@ -1,10 +1,14 @@
-import { supabase } from '../config/database/supabase.config';
+import { supabase } from '../config/supabase.config';
 import {
     type User,
     type UpdateUserDto,
     PublicUser
 } from '../types/user.types.js';
-import { RegisterDto } from '../types/auth.types';
+import { RegisterDto } from '../types/auth.types.js';
+import {
+    isSupabaseNotFound,
+    toDatabaseError
+} from '../utils/supabase-error.utils.js';
 
 const UserModel = {
     async findAll(): Promise<User[]> {
@@ -13,7 +17,7 @@ const UserModel = {
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (error) throw new Error(error.message);
+        if (error) throw toDatabaseError(error);
         return data;
     },
 
@@ -24,7 +28,8 @@ const UserModel = {
             .eq('user_id', id)
             .single();
 
-        if (error) return null;
+        if (isSupabaseNotFound(error)) return null;
+        if (error) throw toDatabaseError(error);
         return data;
     },
 
@@ -35,7 +40,8 @@ const UserModel = {
             .eq('email', email)
             .single();
 
-        if (error) return null;
+        if (isSupabaseNotFound(error)) return null;
+        if (error) throw toDatabaseError(error);
         return data;
     },
 
@@ -48,7 +54,7 @@ const UserModel = {
             )
             .single();
 
-        if (error) throw new Error(error.message);
+        if (error) throw toDatabaseError(error);
         return data;
     },
 
@@ -60,7 +66,7 @@ const UserModel = {
             .select()
             .single();
 
-        if (error) throw new Error(error.message);
+        if (error) throw toDatabaseError(error);
         return data;
     },
 
@@ -70,7 +76,7 @@ const UserModel = {
             .delete()
             .eq('user_id', id);
 
-        if (error) throw new Error(error.message);
+        if (error) throw toDatabaseError(error);
     }
 };
 

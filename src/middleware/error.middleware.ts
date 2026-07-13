@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from 'express';
+import { ZodError } from 'zod';
 import { env } from '../config/env.config.js';
 
 export class AppError extends Error {
@@ -23,6 +24,14 @@ export const errorMiddleware = (
     // Default to 500 if no statusCode
     const statusCode = (err as AppError).statusCode ?? 500;
     const isOperational = (err as AppError).isOperational ?? false;
+
+    if (err instanceof ZodError) {
+        res.status(400).json({
+            status: 'error',
+            message: err.issues.map((issue) => issue.message).join(', ')
+        });
+        return;
+    }
 
     // Operational errors: things we threw ourselves (404, 400, 401...)
     if (isOperational) {

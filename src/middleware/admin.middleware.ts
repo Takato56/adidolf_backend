@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import { AppError } from './error.middleware';
+import { type Request, type Response, type NextFunction } from 'express';
+import { AppError } from './error.middleware.js';
 
 export const adminMiddleware = (
     req: Request,

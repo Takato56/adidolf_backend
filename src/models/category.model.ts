@@ -1,9 +1,13 @@
-import { supabase } from '../config/database/supabase.config';
+import { supabase } from '../config/supabase.config';
 import {
     type Category,
     type CreateCategoryDto,
     type UpdateCategoryDto
 } from '../types/category.types.js';
+import {
+    isSupabaseNotFound,
+    toDatabaseError
+} from '../utils/supabase-error.utils.js';
 
 const CategoryModel = {
     async findAll(sort?: string): Promise<Category[]> {
@@ -16,7 +20,7 @@ const CategoryModel = {
         }
 
         const { data, error } = await query;
-        if (error) throw new Error(error.message);
+        if (error) throw toDatabaseError(error);
         return data;
     },
 
@@ -27,7 +31,8 @@ const CategoryModel = {
             .eq('category_id', id)
             .single();
 
-        if (error) return null;
+        if (isSupabaseNotFound(error)) return null;
+        if (error) throw toDatabaseError(error);
         return data;
     },
 
@@ -52,7 +57,8 @@ const CategoryModel = {
         }
 
         const { data, error } = await query.limit(1).single();
-        if (error) return null;
+        if (isSupabaseNotFound(error)) return null;
+        if (error) throw toDatabaseError(error);
         return data;
     },
 
@@ -63,7 +69,7 @@ const CategoryModel = {
             .select()
             .single();
 
-        if (error) throw new Error(error.message);
+        if (error) throw toDatabaseError(error);
         return data;
     },
 
@@ -75,7 +81,7 @@ const CategoryModel = {
             .select()
             .single();
 
-        if (error) throw new Error(error.message);
+        if (error) throw toDatabaseError(error);
         return data;
     },
 
@@ -85,7 +91,7 @@ const CategoryModel = {
             .delete()
             .eq('category_id', id);
 
-        if (error) throw new Error(error.message);
+        if (error) throw toDatabaseError(error);
     },
 
     async hasProducts(id: number): Promise<boolean> {
@@ -94,7 +100,7 @@ const CategoryModel = {
             .select('product_id', { count: 'exact', head: true })
             .eq('category_id', id);
 
-        if (error) throw new Error(error.message);
+        if (error) throw toDatabaseError(error);
         return (count ?? 0) > 0;
     }
 };

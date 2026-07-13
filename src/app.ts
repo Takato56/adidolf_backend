@@ -7,7 +7,10 @@ import authRoutes from './routes/auth.routes';
 import productRoutes from './routes/product.routes';
 import userRoutes from './routes/user.routes';
 import categoryRoutes from './routes/category.routes';
+import adminRoutes from './routes/admin.routes';
 import { errorMiddleware } from './middleware/error.middleware';
+import { authMiddleware } from './middleware/auth.middleware';
+import { adminMiddleware } from './middleware/admin.middleware';
 
 const app: Application = express();
 
@@ -40,7 +43,7 @@ app.use('/user', userRoutes);
 // app.use('/wishlist', authMiddleware, wishlistRoutes);
 
 // Admin only
-// app.use('/admin', authMiddleware, adminMiddleware, adminRoutes);
+app.use('/admin', authMiddleware, adminMiddleware, adminRoutes);
 
 // Error handler
 app.use(errorMiddleware);

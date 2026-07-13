@@ -1,6 +1,6 @@
 import { type Request, type Response } from 'express';
 import UserModel from '../models/user.model.js';
-import RefreshTokenModel from '../models/refreshToken.model.js';
+import RefreshTokenModel from '../models/userToken.model.js';
 import { AppError } from '../middleware/error.middleware.js';
 import {
     hashPassword,
@@ -67,7 +67,7 @@ export const login = async (req: Request, res: Response) => {
 
     res.cookie(REFRESH_COOKIE, refreshToken, COOKIE_OPTIONS);
 
-    // Store refresh token in MongoDB
+    // Store refresh token in Supabase users_tokens table.
     await RefreshTokenModel.create({
         userId: user.user_id,
         token: refreshToken,
@@ -95,10 +95,16 @@ export const refresh = async (req: Request, res: Response) => {
     try {
         payload = verifyToken(token, 'refresh');
 
-        // Check if token exists in MongoDB
+        // Check if token exists in Supabase users_tokens table.
         const storedToken = await RefreshTokenModel.findOne({ token });
         if (!storedToken) {
             throw new Error('Token not found in database');
+        }
+        if (
+            storedToken.expired_in &&
+            new Date(storedToken.expired_in).getTime() <= Date.now()
+        ) {
+            throw new Error('Token expired in database');
         }
     } catch {
         await RefreshTokenModel.deleteOne({ token });
@@ -112,7 +118,7 @@ export const refresh = async (req: Request, res: Response) => {
         role: payload.role
     });
 
-    // Replace old token with new one in MongoDB (Token Rotation)
+    // Replace old token with new one in Supabase (token rotation).
     await RefreshTokenModel.deleteOne({ token });
     await RefreshTokenModel.create({
         userId: payload.userId,
