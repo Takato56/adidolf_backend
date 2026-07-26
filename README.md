@@ -130,6 +130,8 @@ Refresh tokens are stored in an HTTP-only `refreshToken` cookie and persisted in
 | `POST` | `/auth/refresh`  | Refresh cookie | Rotate refresh token and return a new access token.    |
 | `POST` | `/auth/logout`   | Access token   | Delete refresh token if present and clear cookie.      |
 
+`/auth/login`, `/auth/register`, and `/auth/refresh` share one in-memory, per-IP rate limit (10 requests / 15 minutes combined). Exceeding it returns `429`.
+
 ## User Routes
 
 | Method | Path       | Auth         | Description                                                |

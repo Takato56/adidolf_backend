@@ -6,12 +6,13 @@ import {
     logout
 } from '../controllers/auth.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { authRateLimit } from '../middleware/rateLimit.middleware.js';
 
 const router = Router();
 
-router.post('/register', register);
-router.post('/login', login);
-router.post('/refresh', refresh);
+router.post('/register', authRateLimit, register);
+router.post('/login', authRateLimit, login);
+router.post('/refresh', authRateLimit, refresh);
 router.post('/logout', authMiddleware, logout);
 
 export default router;
