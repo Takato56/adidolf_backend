@@ -6,6 +6,31 @@ import {
     cartItemIdParamSchema,
     updateCartItemQuantitySchema
 } from '../validators/cart.validator.js';
+import {
+    parseNumericId,
+    pickAllowedFields,
+    assertRequiredFields,
+    parseLimit,
+    parseOffset,
+    parseOrder,
+    collectFilters
+} from '../utils/adminQuery.utils.js';
+
+const ADMIN_CART_PRIMARY_KEY = 'cart_id';
+const ADMIN_CART_ALLOWED_FIELDS = ['user_id'] as const;
+const ADMIN_CART_REQUIRED_CREATE_FIELDS = [] as const;
+const ADMIN_CART_FILTER_FIELDS = ['user_id'] as const;
+const ADMIN_CART_UPDATED_AT_COLUMN = 'updated_at';
+
+const ADMIN_CART_ITEM_PRIMARY_KEY = 'cart_item_id';
+const ADMIN_CART_ITEM_ALLOWED_FIELDS = [
+    'cart_id',
+    'product_id',
+    'variant_id',
+    'quantity'
+] as const;
+const ADMIN_CART_ITEM_REQUIRED_CREATE_FIELDS = ['cart_id', 'product_id'] as const;
+const ADMIN_CART_ITEM_FILTER_FIELDS = ['cart_id', 'product_id', 'variant_id'] as const;
 
 /** Lấy userId đã xác thực từ middleware, không tin dữ liệu client gửi lên. */
 const requireUserId = (req: Request): number => {
@@ -129,4 +154,110 @@ export const clearCart = async (req: Request, res: Response) => {
         status: 'success',
         data: { cart_id: cart.cart_id, items: [], subtotal: 0, total_items: 0 }
     });
+};
+
+/** GET /admin/carts — mọi giỏ hàng trong hệ thống, dùng cho trang quản trị. */
+export const listAdminCarts = async (req: Request, res: Response) => {
+    const records = await CartModel.adminFindAllCarts({
+        filters: collectFilters(req, ADMIN_CART_FILTER_FIELDS),
+        limit: parseLimit(req.query.limit),
+        offset: parseOffset(req.query.offset),
+        sort: typeof req.query.sort === 'string' ? req.query.sort : undefined,
+        ascending: parseOrder(req.query.order)
+    });
+
+    res.json({ status: 'success', data: records });
+};
+
+export const getAdminCartById = async (req: Request, res: Response) => {
+    const id = parseNumericId(req.params.id, ADMIN_CART_PRIMARY_KEY);
+    const record = await CartModel.adminFindByIdCart(id);
+    if (!record) throw new AppError('carts record not found', 404);
+
+    res.json({ status: 'success', data: record });
+};
+
+export const createAdminCart = async (req: Request, res: Response) => {
+    const payload = pickAllowedFields(req.body, ADMIN_CART_ALLOWED_FIELDS);
+    assertRequiredFields(payload, ADMIN_CART_REQUIRED_CREATE_FIELDS);
+
+    const record = await CartModel.adminCreateCart(payload);
+    res.status(201).json({ status: 'success', data: record });
+};
+
+export const updateAdminCart = async (req: Request, res: Response) => {
+    const id = parseNumericId(req.params.id, ADMIN_CART_PRIMARY_KEY);
+    const existing = await CartModel.adminFindByIdCart(id);
+    if (!existing) throw new AppError('carts record not found', 404);
+
+    const payload = pickAllowedFields(req.body, ADMIN_CART_ALLOWED_FIELDS);
+    if (Object.keys(payload).length === 0) {
+        throw new AppError('No valid fields provided for update', 400);
+    }
+
+    payload[ADMIN_CART_UPDATED_AT_COLUMN] = new Date().toISOString();
+
+    const record = await CartModel.adminUpdateCart(id, payload);
+    res.json({ status: 'success', data: record });
+};
+
+export const deleteAdminCart = async (req: Request, res: Response) => {
+    const id = parseNumericId(req.params.id, ADMIN_CART_PRIMARY_KEY);
+    const existing = await CartModel.adminFindByIdCart(id);
+    if (!existing) throw new AppError('carts record not found', 404);
+
+    await CartModel.adminDeleteCart(id);
+    res.status(204).send();
+};
+
+/** GET /admin/cart-items — mọi dòng hàng trong mọi giỏ, dùng cho trang quản trị. */
+export const listAdminCartItems = async (req: Request, res: Response) => {
+    const records = await CartModel.adminFindAllCartItems({
+        filters: collectFilters(req, ADMIN_CART_ITEM_FILTER_FIELDS),
+        limit: parseLimit(req.query.limit),
+        offset: parseOffset(req.query.offset),
+        sort: typeof req.query.sort === 'string' ? req.query.sort : undefined,
+        ascending: parseOrder(req.query.order)
+    });
+
+    res.json({ status: 'success', data: records });
+};
+
+export const getAdminCartItemById = async (req: Request, res: Response) => {
+    const id = parseNumericId(req.params.id, ADMIN_CART_ITEM_PRIMARY_KEY);
+    const record = await CartModel.adminFindByIdCartItem(id);
+    if (!record) throw new AppError('cart_items record not found', 404);
+
+    res.json({ status: 'success', data: record });
+};
+
+export const createAdminCartItem = async (req: Request, res: Response) => {
+    const payload = pickAllowedFields(req.body, ADMIN_CART_ITEM_ALLOWED_FIELDS);
+    assertRequiredFields(payload, ADMIN_CART_ITEM_REQUIRED_CREATE_FIELDS);
+
+    const record = await CartModel.adminCreateCartItem(payload);
+    res.status(201).json({ status: 'success', data: record });
+};
+
+export const updateAdminCartItem = async (req: Request, res: Response) => {
+    const id = parseNumericId(req.params.id, ADMIN_CART_ITEM_PRIMARY_KEY);
+    const existing = await CartModel.adminFindByIdCartItem(id);
+    if (!existing) throw new AppError('cart_items record not found', 404);
+
+    const payload = pickAllowedFields(req.body, ADMIN_CART_ITEM_ALLOWED_FIELDS);
+    if (Object.keys(payload).length === 0) {
+        throw new AppError('No valid fields provided for update', 400);
+    }
+
+    const record = await CartModel.adminUpdateCartItem(id, payload);
+    res.json({ status: 'success', data: record });
+};
+
+export const deleteAdminCartItem = async (req: Request, res: Response) => {
+    const id = parseNumericId(req.params.id, ADMIN_CART_ITEM_PRIMARY_KEY);
+    const existing = await CartModel.adminFindByIdCartItem(id);
+    if (!existing) throw new AppError('cart_items record not found', 404);
+
+    await CartModel.deleteItem(id);
+    res.status(204).send();
 };

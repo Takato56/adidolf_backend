@@ -10,6 +10,18 @@ import type {
     ReviewWithReviewer,
     UpdateReviewDto
 } from '../types/review.types.js';
+import type { AdminListOptions, AdminRecord } from '../utils/adminQuery.utils.js';
+
+const ADMIN_DEFAULT_ORDER = 'created_at';
+const ADMIN_SORTABLE_FIELDS = new Set([
+    'review_id',
+    'product_id',
+    'user_id',
+    'rating',
+    'created_at',
+    'order_item_id',
+    'is_approved'
+]);
 
 const reviewWithReviewerSelect = `
     review_id, product_id, user_id, order_item_id, rating, comment,
@@ -20,6 +32,58 @@ const reviewWithReviewerSelect = `
 type ReviewRow = Review & { reviewer: { full_name: string } | null };
 
 const ReviewModel = {
+    /** GET /admin/reviews — mọi đánh giá (kể cả chưa duyệt), lọc/sắp xếp/phân trang tùy ý. */
+    async adminFindAll(options: AdminListOptions): Promise<AdminRecord[]> {
+        let query: any = supabase.from('reviews').select('*');
+
+        Object.entries(options.filters).forEach(([column, value]) => {
+            query = query.eq(column, value);
+        });
+
+        const sortColumn =
+            options.sort && ADMIN_SORTABLE_FIELDS.has(options.sort)
+                ? options.sort
+                : ADMIN_DEFAULT_ORDER;
+
+        query = query.order(sortColumn, {
+            ascending: options.ascending ?? false
+        });
+
+        if (options.limit !== undefined) {
+            const offset = options.offset ?? 0;
+            query = query.range(offset, offset + options.limit - 1);
+        }
+
+        const { data, error } = await query;
+        if (error) throw toDatabaseError(error);
+        return (data ?? []) as AdminRecord[];
+    },
+
+    /** Ghi thẳng payload — không giới hạn trường như create() công khai. */
+    async adminCreate(payload: AdminRecord): Promise<AdminRecord> {
+        const { data, error } = await supabase
+            .from('reviews')
+            .insert(payload)
+            .select('*')
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
+    /** Ghi thẳng payload — không tự đặt lại is_approved=false như update() công khai. */
+    async adminUpdate(id: number, payload: AdminRecord): Promise<AdminRecord> {
+        const { data, error } = await supabase
+            .from('reviews')
+            .update(payload)
+            .eq('review_id', id)
+            .select('*')
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
     /** Công khai — chỉ đánh giá đã duyệt, kèm tên người đánh giá, có phân trang. */
     async findApprovedByProduct(
         productId: number,

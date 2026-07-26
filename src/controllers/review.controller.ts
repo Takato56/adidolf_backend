@@ -13,6 +13,86 @@ import {
     updateReviewSchema
 } from '../validators/review.validator.js';
 import { productIdSchema } from '../validators/product.validator.js';
+import {
+    parseNumericId,
+    pickAllowedFields,
+    assertRequiredFields,
+    parseLimit,
+    parseOffset,
+    parseOrder,
+    collectFilters
+} from '../utils/adminQuery.utils.js';
+
+const ADMIN_PRIMARY_KEY = 'review_id';
+const ADMIN_ALLOWED_FIELDS = [
+    'product_id',
+    'user_id',
+    'order_item_id',
+    'rating',
+    'comment',
+    'image_urls',
+    'is_approved'
+] as const;
+const ADMIN_REQUIRED_CREATE_FIELDS = ['product_id', 'user_id', 'rating'] as const;
+const ADMIN_FILTER_FIELDS = [
+    'product_id',
+    'user_id',
+    'order_item_id',
+    'rating',
+    'is_approved'
+] as const;
+
+/** GET /admin/reviews — mọi đánh giá kể cả chưa duyệt, dùng cho trang quản trị. */
+export const listAdminReviews = async (req: Request, res: Response) => {
+    const records = await ReviewModel.adminFindAll({
+        filters: collectFilters(req, ADMIN_FILTER_FIELDS),
+        limit: parseLimit(req.query.limit),
+        offset: parseOffset(req.query.offset),
+        sort: typeof req.query.sort === 'string' ? req.query.sort : undefined,
+        ascending: parseOrder(req.query.order)
+    });
+
+    res.json({ status: 'success', data: records });
+};
+
+export const getAdminReviewById = async (req: Request, res: Response) => {
+    const id = parseNumericId(req.params.id, ADMIN_PRIMARY_KEY);
+    const record = await ReviewModel.findById(id);
+    if (!record) throw new AppError('reviews record not found', 404);
+
+    res.json({ status: 'success', data: record });
+};
+
+export const createAdminReview = async (req: Request, res: Response) => {
+    const payload = pickAllowedFields(req.body, ADMIN_ALLOWED_FIELDS);
+    assertRequiredFields(payload, ADMIN_REQUIRED_CREATE_FIELDS);
+
+    const record = await ReviewModel.adminCreate(payload);
+    res.status(201).json({ status: 'success', data: record });
+};
+
+export const updateAdminReview = async (req: Request, res: Response) => {
+    const id = parseNumericId(req.params.id, ADMIN_PRIMARY_KEY);
+    const existing = await ReviewModel.findById(id);
+    if (!existing) throw new AppError('reviews record not found', 404);
+
+    const payload = pickAllowedFields(req.body, ADMIN_ALLOWED_FIELDS);
+    if (Object.keys(payload).length === 0) {
+        throw new AppError('No valid fields provided for update', 400);
+    }
+
+    const record = await ReviewModel.adminUpdate(id, payload);
+    res.json({ status: 'success', data: record });
+};
+
+export const deleteAdminReview = async (req: Request, res: Response) => {
+    const id = parseNumericId(req.params.id, ADMIN_PRIMARY_KEY);
+    const existing = await ReviewModel.findById(id);
+    if (!existing) throw new AppError('reviews record not found', 404);
+
+    await ReviewModel.delete(id);
+    res.status(204).send();
+};
 
 const requireUserId = (req: Request): number => {
     if (!req.user) throw new AppError('Unauthorized', 401);

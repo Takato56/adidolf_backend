@@ -14,6 +14,19 @@ import type {
     CartItemWithDetails,
     CartSummary
 } from '../types/cart.types.js';
+import type { AdminListOptions, AdminRecord } from '../utils/adminQuery.utils.js';
+
+const ADMIN_CART_DEFAULT_ORDER = 'created_at';
+const ADMIN_CART_SORTABLE_FIELDS = new Set(['cart_id', 'user_id', 'created_at', 'updated_at']);
+
+const ADMIN_CART_ITEM_DEFAULT_ORDER = 'added_at';
+const ADMIN_CART_ITEM_SORTABLE_FIELDS = new Set([
+    'cart_item_id',
+    'cart_id',
+    'added_at',
+    'product_id',
+    'variant_id'
+]);
 
 const cartItemSelect = `
     cart_item_id, cart_id, product_id, variant_id, quantity, added_at,
@@ -85,6 +98,138 @@ const normalizeItem = (row: CartItemQueryRow): CartItemWithDetails => {
 };
 
 const CartModel = {
+    /** GET /admin/carts — mọi giỏ hàng, lọc/sắp xếp/phân trang tùy ý. */
+    async adminFindAllCarts(options: AdminListOptions): Promise<AdminRecord[]> {
+        let query: any = supabase.from('carts').select('*');
+
+        Object.entries(options.filters).forEach(([column, value]) => {
+            query = query.eq(column, value);
+        });
+
+        const sortColumn =
+            options.sort && ADMIN_CART_SORTABLE_FIELDS.has(options.sort)
+                ? options.sort
+                : ADMIN_CART_DEFAULT_ORDER;
+
+        query = query.order(sortColumn, {
+            ascending: options.ascending ?? false
+        });
+
+        if (options.limit !== undefined) {
+            const offset = options.offset ?? 0;
+            query = query.range(offset, offset + options.limit - 1);
+        }
+
+        const { data, error } = await query;
+        if (error) throw toDatabaseError(error);
+        return (data ?? []) as AdminRecord[];
+    },
+
+    async adminFindByIdCart(cartId: number): Promise<AdminRecord | null> {
+        const { data, error } = await supabase
+            .from('carts')
+            .select('*')
+            .eq('cart_id', cartId)
+            .single();
+
+        if (isSupabaseNotFound(error)) return null;
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
+    async adminCreateCart(payload: AdminRecord): Promise<AdminRecord> {
+        const { data, error } = await supabase
+            .from('carts')
+            .insert(payload)
+            .select('*')
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
+    async adminUpdateCart(cartId: number, payload: AdminRecord): Promise<AdminRecord> {
+        const { data, error } = await supabase
+            .from('carts')
+            .update(payload)
+            .eq('cart_id', cartId)
+            .select('*')
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
+    async adminDeleteCart(cartId: number): Promise<void> {
+        const { error } = await supabase.from('carts').delete().eq('cart_id', cartId);
+        if (error) throw toDatabaseError(error);
+    },
+
+    /** GET /admin/cart-items — mọi dòng hàng trong mọi giỏ, lọc/sắp xếp/phân trang tùy ý. */
+    async adminFindAllCartItems(options: AdminListOptions): Promise<AdminRecord[]> {
+        let query: any = supabase.from('cart_items').select('*');
+
+        Object.entries(options.filters).forEach(([column, value]) => {
+            query = query.eq(column, value);
+        });
+
+        const sortColumn =
+            options.sort && ADMIN_CART_ITEM_SORTABLE_FIELDS.has(options.sort)
+                ? options.sort
+                : ADMIN_CART_ITEM_DEFAULT_ORDER;
+
+        query = query.order(sortColumn, {
+            ascending: options.ascending ?? false
+        });
+
+        if (options.limit !== undefined) {
+            const offset = options.offset ?? 0;
+            query = query.range(offset, offset + options.limit - 1);
+        }
+
+        const { data, error } = await query;
+        if (error) throw toDatabaseError(error);
+        return (data ?? []) as AdminRecord[];
+    },
+
+    async adminFindByIdCartItem(cartItemId: number): Promise<AdminRecord | null> {
+        const { data, error } = await supabase
+            .from('cart_items')
+            .select('*')
+            .eq('cart_item_id', cartItemId)
+            .single();
+
+        if (isSupabaseNotFound(error)) return null;
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
+    async adminCreateCartItem(payload: AdminRecord): Promise<AdminRecord> {
+        const { data, error } = await supabase
+            .from('cart_items')
+            .insert(payload)
+            .select('*')
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
+    async adminUpdateCartItem(
+        cartItemId: number,
+        payload: AdminRecord
+    ): Promise<AdminRecord> {
+        const { data, error } = await supabase
+            .from('cart_items')
+            .update(payload)
+            .eq('cart_item_id', cartItemId)
+            .select('*')
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
     /** Lấy giỏ của người dùng, tự tạo giỏ rỗng nếu chưa có. */
     async findOrCreateByUserId(userId: number): Promise<Cart> {
         const { data: existing, error: findError } = await supabase

@@ -8,8 +8,70 @@ import type {
     CreateAddressDto,
     UpdateAddressDto
 } from '../types/address.types.js';
+import type { AdminListOptions, AdminRecord } from '../utils/adminQuery.utils.js';
+
+const ADMIN_DEFAULT_ORDER = 'created_at';
+const ADMIN_SORTABLE_FIELDS = new Set([
+    'address_id',
+    'user_id',
+    'recipient_name',
+    'created_at',
+    'is_default'
+]);
 
 const AddressModel = {
+    /** GET /admin/addresses — mọi địa chỉ, lọc/sắp xếp/phân trang tùy ý, không giới hạn theo chủ sở hữu. */
+    async adminFindAll(options: AdminListOptions): Promise<AdminRecord[]> {
+        let query: any = supabase.from('addresses').select('*');
+
+        Object.entries(options.filters).forEach(([column, value]) => {
+            query = query.eq(column, value);
+        });
+
+        const sortColumn =
+            options.sort && ADMIN_SORTABLE_FIELDS.has(options.sort)
+                ? options.sort
+                : ADMIN_DEFAULT_ORDER;
+
+        query = query.order(sortColumn, {
+            ascending: options.ascending ?? false
+        });
+
+        if (options.limit !== undefined) {
+            const offset = options.offset ?? 0;
+            query = query.range(offset, offset + options.limit - 1);
+        }
+
+        const { data, error } = await query;
+        if (error) throw toDatabaseError(error);
+        return (data ?? []) as AdminRecord[];
+    },
+
+    /** Ghi thẳng payload — không có side effect clearDefault như create() cho khách hàng. */
+    async adminCreate(payload: AdminRecord): Promise<AdminRecord> {
+        const { data, error } = await supabase
+            .from('addresses')
+            .insert(payload)
+            .select('*')
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
+    /** Ghi thẳng payload — không có side effect clearDefault như update() cho khách hàng. */
+    async adminUpdate(id: number, payload: AdminRecord): Promise<AdminRecord> {
+        const { data, error } = await supabase
+            .from('addresses')
+            .update(payload)
+            .eq('address_id', id)
+            .select('*')
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
     async findAllByUser(userId: number): Promise<Address[]> {
         const { data, error } = await supabase
             .from('addresses')

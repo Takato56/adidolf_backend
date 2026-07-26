@@ -8,8 +8,39 @@ import {
     isSupabaseNotFound,
     toDatabaseError
 } from '../utils/supabase-error.utils.js';
+import type { AdminListOptions, AdminRecord } from '../utils/adminQuery.utils.js';
+
+const ADMIN_DEFAULT_ORDER = 'created_at';
+const ADMIN_SORTABLE_FIELDS = new Set(['category_id', 'name', 'created_at', 'slug']);
 
 const CategoryModel = {
+    /** GET /admin/categories — lọc/sắp xếp/phân trang tùy ý, dùng cho trang quản trị. */
+    async adminFindAll(options: AdminListOptions): Promise<AdminRecord[]> {
+        let query: any = supabase.from('categories').select('*');
+
+        Object.entries(options.filters).forEach(([column, value]) => {
+            query = query.eq(column, value);
+        });
+
+        const sortColumn =
+            options.sort && ADMIN_SORTABLE_FIELDS.has(options.sort)
+                ? options.sort
+                : ADMIN_DEFAULT_ORDER;
+
+        query = query.order(sortColumn, {
+            ascending: options.ascending ?? false
+        });
+
+        if (options.limit !== undefined) {
+            const offset = options.offset ?? 0;
+            query = query.range(offset, offset + options.limit - 1);
+        }
+
+        const { data, error } = await query;
+        if (error) throw toDatabaseError(error);
+        return (data ?? []) as AdminRecord[];
+    },
+
     async findAll(sort?: string): Promise<Category[]> {
         let query = supabase.from('categories').select('*');
 

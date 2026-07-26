@@ -18,7 +18,49 @@ import {
     updateProductSchema
 } from '../validators/product.validator.js';
 import { generateSlug } from '../utils/slug.utils.js';
-import { type ProductImageInput } from '../types/product.types.js';
+import {
+    type CreateProductDto,
+    type ProductImageInput,
+    type UpdateProductDto
+} from '../types/product.types.js';
+import {
+    parseNumericId,
+    pickAllowedFields,
+    assertRequiredFields,
+    parseLimit,
+    parseOffset,
+    parseOrder,
+    collectFilters
+} from '../utils/adminQuery.utils.js';
+
+const ADMIN_PRODUCT_PRIMARY_KEY = 'product_id';
+const ADMIN_PRODUCT_ALLOWED_FIELDS = [
+    'category_id',
+    'name',
+    'slug',
+    'description',
+    'base_price',
+    'brand',
+    'is_published'
+] as const;
+const ADMIN_PRODUCT_REQUIRED_CREATE_FIELDS = [
+    'category_id',
+    'name',
+    'slug',
+    'base_price'
+] as const;
+const ADMIN_PRODUCT_FILTER_FIELDS = ['category_id', 'slug', 'brand', 'is_published'] as const;
+
+const ADMIN_IMAGE_PRIMARY_KEY = 'image_id';
+const ADMIN_IMAGE_ALLOWED_FIELDS = [
+    'product_id',
+    'image_url',
+    'alt_text',
+    'is_primary',
+    'sort_order'
+] as const;
+const ADMIN_IMAGE_REQUIRED_CREATE_FIELDS = ['product_id', 'image_url'] as const;
+const ADMIN_IMAGE_FILTER_FIELDS = ['product_id', 'is_primary'] as const;
 
 const getProductOrThrow = async (id: number, includeUnpublished = false) => {
     const product = await ProductModel.findById(id, includeUnpublished);
@@ -235,5 +277,110 @@ export const deleteProductImage = async (req: Request, res: Response) => {
         }
     );
 
+    res.status(204).send();
+};
+
+/** GET /admin/products — hàng phẳng kể cả chưa xuất bản, dùng cho trang quản trị. */
+export const listAdminProducts = async (req: Request, res: Response) => {
+    const records = await ProductModel.adminFindAll({
+        filters: collectFilters(req, ADMIN_PRODUCT_FILTER_FIELDS),
+        limit: parseLimit(req.query.limit),
+        offset: parseOffset(req.query.offset),
+        sort: typeof req.query.sort === 'string' ? req.query.sort : undefined,
+        ascending: parseOrder(req.query.order)
+    });
+
+    res.json({ status: 'success', data: records });
+};
+
+export const getAdminProductById = async (req: Request, res: Response) => {
+    const id = parseNumericId(req.params.id, ADMIN_PRODUCT_PRIMARY_KEY);
+    const record = await ProductModel.adminFindById(id);
+    if (!record) throw new AppError('products record not found', 404);
+
+    res.json({ status: 'success', data: record });
+};
+
+export const createAdminProduct = async (req: Request, res: Response) => {
+    const payload = pickAllowedFields(req.body, ADMIN_PRODUCT_ALLOWED_FIELDS);
+    assertRequiredFields(payload, ADMIN_PRODUCT_REQUIRED_CREATE_FIELDS);
+
+    const record = await ProductModel.create(payload as unknown as CreateProductDto);
+    res.status(201).json({ status: 'success', data: record });
+};
+
+export const updateAdminProduct = async (req: Request, res: Response) => {
+    const id = parseNumericId(req.params.id, ADMIN_PRODUCT_PRIMARY_KEY);
+    const existing = await ProductModel.adminFindById(id);
+    if (!existing) throw new AppError('products record not found', 404);
+
+    const payload = pickAllowedFields(req.body, ADMIN_PRODUCT_ALLOWED_FIELDS);
+    if (Object.keys(payload).length === 0) {
+        throw new AppError('No valid fields provided for update', 400);
+    }
+
+    const record = await ProductModel.update(id, payload as unknown as UpdateProductDto);
+    res.json({ status: 'success', data: record });
+};
+
+/** DELETE /admin/products/:id — xóa cứng thật sự, khác với deleteProduct() (chỉ ẩn is_published). */
+export const deleteAdminProduct = async (req: Request, res: Response) => {
+    const id = parseNumericId(req.params.id, ADMIN_PRODUCT_PRIMARY_KEY);
+    const existing = await ProductModel.adminFindById(id);
+    if (!existing) throw new AppError('products record not found', 404);
+
+    await ProductModel.adminDelete(id);
+    res.status(204).send();
+};
+
+/** GET /admin/product-images — CRUD chung cho trang quản trị. */
+export const listAdminProductImages = async (req: Request, res: Response) => {
+    const records = await ProductImageModel.adminFindAll({
+        filters: collectFilters(req, ADMIN_IMAGE_FILTER_FIELDS),
+        limit: parseLimit(req.query.limit),
+        offset: parseOffset(req.query.offset),
+        sort: typeof req.query.sort === 'string' ? req.query.sort : undefined,
+        ascending: parseOrder(req.query.order)
+    });
+
+    res.json({ status: 'success', data: records });
+};
+
+export const getAdminProductImageById = async (req: Request, res: Response) => {
+    const id = parseNumericId(req.params.id, ADMIN_IMAGE_PRIMARY_KEY);
+    const record = await ProductImageModel.findById(id);
+    if (!record) throw new AppError('product_images record not found', 404);
+
+    res.json({ status: 'success', data: record });
+};
+
+export const createAdminProductImage = async (req: Request, res: Response) => {
+    const payload = pickAllowedFields(req.body, ADMIN_IMAGE_ALLOWED_FIELDS);
+    assertRequiredFields(payload, ADMIN_IMAGE_REQUIRED_CREATE_FIELDS);
+
+    const record = await ProductImageModel.adminCreate(payload);
+    res.status(201).json({ status: 'success', data: record });
+};
+
+export const updateAdminProductImage = async (req: Request, res: Response) => {
+    const id = parseNumericId(req.params.id, ADMIN_IMAGE_PRIMARY_KEY);
+    const existing = await ProductImageModel.findById(id);
+    if (!existing) throw new AppError('product_images record not found', 404);
+
+    const payload = pickAllowedFields(req.body, ADMIN_IMAGE_ALLOWED_FIELDS);
+    if (Object.keys(payload).length === 0) {
+        throw new AppError('No valid fields provided for update', 400);
+    }
+
+    const record = await ProductImageModel.adminUpdate(id, payload);
+    res.json({ status: 'success', data: record });
+};
+
+export const deleteAdminProductImage = async (req: Request, res: Response) => {
+    const id = parseNumericId(req.params.id, ADMIN_IMAGE_PRIMARY_KEY);
+    const existing = await ProductImageModel.findById(id);
+    if (!existing) throw new AppError('product_images record not found', 404);
+
+    await ProductImageModel.delete(id);
     res.status(204).send();
 };

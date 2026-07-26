@@ -2,8 +2,168 @@ import { supabase } from '../config/supabase.config.js';
 import { toOrderError } from '../utils/order-error.utils.js';
 import { toDatabaseError } from '../utils/supabase-error.utils.js';
 import type { CreateOrderDto, ListOrdersQuery } from '../types/order.types.js';
+import type { AdminListOptions, AdminRecord } from '../utils/adminQuery.utils.js';
+
+const ADMIN_ORDER_DEFAULT_ORDER = 'created_at';
+const ADMIN_ORDER_SORTABLE_FIELDS = new Set([
+    'order_id',
+    'user_id',
+    'status',
+    'created_at',
+    'updated_at',
+    'address_id',
+    'voucher_id'
+]);
+
+const ADMIN_ORDER_ITEM_SORTABLE_FIELDS = new Set([
+    'item_id',
+    'order_id',
+    'product_id',
+    'variant_id'
+]);
 
 const OrderModel = {
+    /** GET /admin/orders — mọi đơn hàng, lọc/sắp xếp/phân trang tùy ý. */
+    async adminFindAllOrders(options: AdminListOptions): Promise<AdminRecord[]> {
+        let query: any = supabase.from('orders').select('*');
+
+        Object.entries(options.filters).forEach(([column, value]) => {
+            query = query.eq(column, value);
+        });
+
+        const sortColumn =
+            options.sort && ADMIN_ORDER_SORTABLE_FIELDS.has(options.sort)
+                ? options.sort
+                : ADMIN_ORDER_DEFAULT_ORDER;
+
+        query = query.order(sortColumn, {
+            ascending: options.ascending ?? false
+        });
+
+        if (options.limit !== undefined) {
+            const offset = options.offset ?? 0;
+            query = query.range(offset, offset + options.limit - 1);
+        }
+
+        const { data, error } = await query;
+        if (error) throw toDatabaseError(error);
+        return (data ?? []) as AdminRecord[];
+    },
+
+    async adminFindByIdOrder(orderId: number): Promise<AdminRecord | null> {
+        const { data, error } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('order_id', orderId)
+            .maybeSingle();
+
+        if (error) throw toDatabaseError(error);
+        return data as AdminRecord | null;
+    },
+
+    async adminCreateOrder(payload: AdminRecord): Promise<AdminRecord> {
+        const { data, error } = await supabase
+            .from('orders')
+            .insert(payload)
+            .select('*')
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
+    async adminUpdateOrder(orderId: number, payload: AdminRecord): Promise<AdminRecord> {
+        const { data, error } = await supabase
+            .from('orders')
+            .update(payload)
+            .eq('order_id', orderId)
+            .select('*')
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
+    async adminDeleteOrder(orderId: number): Promise<void> {
+        const { error } = await supabase.from('orders').delete().eq('order_id', orderId);
+        if (error) throw toDatabaseError(error);
+    },
+
+    /** GET /admin/order-items — mọi dòng hàng trong mọi đơn, lọc/sắp xếp/phân trang tùy ý. */
+    async adminFindAllOrderItems(options: AdminListOptions): Promise<AdminRecord[]> {
+        let query: any = supabase.from('order_items').select('*');
+
+        Object.entries(options.filters).forEach(([column, value]) => {
+            query = query.eq(column, value);
+        });
+
+        const sortColumn =
+            options.sort && ADMIN_ORDER_ITEM_SORTABLE_FIELDS.has(options.sort)
+                ? options.sort
+                : undefined;
+
+        if (sortColumn) {
+            query = query.order(sortColumn, {
+                ascending: options.ascending ?? false
+            });
+        }
+
+        if (options.limit !== undefined) {
+            const offset = options.offset ?? 0;
+            query = query.range(offset, offset + options.limit - 1);
+        }
+
+        const { data, error } = await query;
+        if (error) throw toDatabaseError(error);
+        return (data ?? []) as AdminRecord[];
+    },
+
+    async adminFindByIdOrderItem(itemId: number): Promise<AdminRecord | null> {
+        const { data, error } = await supabase
+            .from('order_items')
+            .select('*')
+            .eq('item_id', itemId)
+            .maybeSingle();
+
+        if (error) throw toDatabaseError(error);
+        return data as AdminRecord | null;
+    },
+
+    async adminCreateOrderItem(payload: AdminRecord): Promise<AdminRecord> {
+        const { data, error } = await supabase
+            .from('order_items')
+            .insert(payload)
+            .select('*')
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
+    async adminUpdateOrderItem(
+        itemId: number,
+        payload: AdminRecord
+    ): Promise<AdminRecord> {
+        const { data, error } = await supabase
+            .from('order_items')
+            .update(payload)
+            .eq('item_id', itemId)
+            .select('*')
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
+    async adminDeleteOrderItem(itemId: number): Promise<void> {
+        const { error } = await supabase
+            .from('order_items')
+            .delete()
+            .eq('item_id', itemId);
+
+        if (error) throw toDatabaseError(error);
+    },
+
     /**
      * Tạo đơn hàng từ giỏ của người dùng.
      * Toàn bộ nghiệp vụ nằm trong hàm PostgreSQL create_order_from_cart nên

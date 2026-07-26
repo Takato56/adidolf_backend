@@ -9,12 +9,94 @@ import {
     isSupabaseNotFound,
     toDatabaseError
 } from '../utils/supabase-error.utils.js';
+import type { AdminListOptions, AdminRecord } from '../utils/adminQuery.utils.js';
 
 /** Danh sách cột an toàn để trả về client — không bao giờ gồm password_hash. */
 const PUBLIC_COLUMNS =
     'user_id, email, full_name, phone, avatar_url, role, is_active, created_at';
 
+/** Cột an toàn cho trang quản trị — giống PUBLIC_COLUMNS nhưng có thêm updated_at. */
+const ADMIN_COLUMNS =
+    'user_id, email, full_name, phone, avatar_url, role, is_active, created_at, updated_at';
+const ADMIN_DEFAULT_ORDER = 'created_at';
+const ADMIN_SORTABLE_FIELDS = new Set([
+    'user_id',
+    'email',
+    'full_name',
+    'created_at',
+    'updated_at',
+    'role',
+    'is_active'
+]);
+
 const UserModel = {
+    /** GET /admin/users — mọi tài khoản, lọc/sắp xếp/phân trang tùy ý, không lộ password_hash. */
+    async adminFindAll(options: AdminListOptions): Promise<AdminRecord[]> {
+        let query: any = supabase.from('users').select(ADMIN_COLUMNS);
+
+        Object.entries(options.filters).forEach(([column, value]) => {
+            query = query.eq(column, value);
+        });
+
+        const sortColumn =
+            options.sort && ADMIN_SORTABLE_FIELDS.has(options.sort)
+                ? options.sort
+                : ADMIN_DEFAULT_ORDER;
+
+        query = query.order(sortColumn, {
+            ascending: options.ascending ?? false
+        });
+
+        if (options.limit !== undefined) {
+            const offset = options.offset ?? 0;
+            query = query.range(offset, offset + options.limit - 1);
+        }
+
+        const { data, error } = await query;
+        if (error) throw toDatabaseError(error);
+        return (data ?? []) as AdminRecord[];
+    },
+
+    async adminFindById(id: number): Promise<AdminRecord | null> {
+        const { data, error } = await supabase
+            .from('users')
+            .select(ADMIN_COLUMNS)
+            .eq('user_id', id)
+            .single();
+
+        if (isSupabaseNotFound(error)) return null;
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
+    /**
+     * Ghi thẳng payload — password_hash cố tình không nằm trong danh sách
+     * trường cho phép ở tầng controller, nên form admin không thể set/băm
+     * mật khẩu qua đường này. Tạo tài khoản phải đi qua /auth/register.
+     */
+    async adminCreate(payload: AdminRecord): Promise<AdminRecord> {
+        const { data, error } = await supabase
+            .from('users')
+            .insert(payload)
+            .select(ADMIN_COLUMNS)
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
+    async adminUpdate(id: number, payload: AdminRecord): Promise<AdminRecord> {
+        const { data, error } = await supabase
+            .from('users')
+            .update(payload)
+            .eq('user_id', id)
+            .select(ADMIN_COLUMNS)
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
     async findAll(): Promise<User[]> {
         const { data, error } = await supabase
             .from('users')

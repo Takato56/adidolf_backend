@@ -9,12 +9,15 @@ import {
     isSupabaseNotFound,
     toDatabaseError
 } from '../utils/supabase-error.utils.js';
+import type { AdminListOptions, AdminRecord } from '../utils/adminQuery.utils.js';
 
 type CreateManyOptions = {
     defaultPrimary?: boolean;
 };
 
 const table = 'product_images';
+const ADMIN_DEFAULT_ORDER = 'sort_order';
+const ADMIN_SORTABLE_FIELDS = new Set(['image_id', 'product_id', 'sort_order', 'is_primary']);
 
 const normalizeCreatePayloads = (
     productId: number,
@@ -56,6 +59,58 @@ const cleanUpdatePayload = (
 };
 
 const ProductImageModel = {
+    /** GET /admin/product-images — CRUD chung cho trang quản trị. */
+    async adminFindAll(options: AdminListOptions): Promise<AdminRecord[]> {
+        let query: any = supabase.from(table).select('*');
+
+        Object.entries(options.filters).forEach(([column, value]) => {
+            query = query.eq(column, value);
+        });
+
+        const sortColumn =
+            options.sort && ADMIN_SORTABLE_FIELDS.has(options.sort)
+                ? options.sort
+                : ADMIN_DEFAULT_ORDER;
+
+        query = query.order(sortColumn, {
+            ascending: options.ascending ?? true
+        });
+
+        if (options.limit !== undefined) {
+            const offset = options.offset ?? 0;
+            query = query.range(offset, offset + options.limit - 1);
+        }
+
+        const { data, error } = await query;
+        if (error) throw toDatabaseError(error);
+        return (data ?? []) as AdminRecord[];
+    },
+
+    /** Ghi thẳng payload — không có logic mặc định ảnh chính như createMany(). */
+    async adminCreate(payload: AdminRecord): Promise<AdminRecord> {
+        const { data, error } = await supabase
+            .from(table)
+            .insert(payload)
+            .select('*')
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
+    /** Ghi thẳng payload — không có side effect clearPrimary như update() công khai. */
+    async adminUpdate(id: number, payload: AdminRecord): Promise<AdminRecord> {
+        const { data, error } = await supabase
+            .from(table)
+            .update(payload)
+            .eq('image_id', id)
+            .select('*')
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord;
+    },
+
     async findById(id: number): Promise<ProductImage | null> {
         const { data, error } = await supabase
             .from(table)

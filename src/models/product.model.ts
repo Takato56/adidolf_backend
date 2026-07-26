@@ -12,6 +12,20 @@ import {
     isSupabaseNotFound,
     toDatabaseError
 } from '../utils/supabase-error.utils.js';
+import type { AdminListOptions, AdminRecord } from '../utils/adminQuery.utils.js';
+
+const ADMIN_DEFAULT_ORDER = 'created_at';
+const ADMIN_SORTABLE_FIELDS = new Set([
+    'product_id',
+    'category_id',
+    'name',
+    'base_price',
+    'created_at',
+    'updated_at',
+    'slug',
+    'brand',
+    'is_published'
+]);
 
 const productSelect = `
     *,
@@ -60,6 +74,56 @@ const cleanProductPayload = <T extends CreateProductDto | UpdateProductDto>(
 };
 
 const ProductModel = {
+    /** GET /admin/products — hàng phẳng (không kèm quan hệ), kể cả chưa xuất bản, lọc/sắp xếp/phân trang tùy ý. */
+    async adminFindAll(options: AdminListOptions): Promise<AdminRecord[]> {
+        let query: any = supabase.from('products').select('*');
+
+        Object.entries(options.filters).forEach(([column, value]) => {
+            query = query.eq(column, value);
+        });
+
+        const sortColumn =
+            options.sort && ADMIN_SORTABLE_FIELDS.has(options.sort)
+                ? options.sort
+                : ADMIN_DEFAULT_ORDER;
+
+        query = query.order(sortColumn, {
+            ascending: options.ascending ?? false
+        });
+
+        if (options.limit !== undefined) {
+            const offset = options.offset ?? 0;
+            query = query.range(offset, offset + options.limit - 1);
+        }
+
+        const { data, error } = await query;
+        if (error) throw toDatabaseError(error);
+        return (data ?? []) as AdminRecord[];
+    },
+
+    /** Hàng phẳng cho trang quản trị — không kèm category/images/variants như findById(). */
+    async adminFindById(id: number): Promise<AdminRecord | null> {
+        const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('product_id', id)
+            .maybeSingle();
+
+        if (isSupabaseNotFound(error)) return null;
+        if (error) throw toDatabaseError(error);
+        return data as unknown as AdminRecord | null;
+    },
+
+    /** Xóa cứng thật sự — khác với delete() công khai (chỉ ẩn is_published). */
+    async adminDelete(id: number): Promise<void> {
+        const { error } = await supabase
+            .from('products')
+            .delete()
+            .eq('product_id', id);
+
+        if (error) throw toDatabaseError(error);
+    },
+
     async findAll(filters?: ProductFilters): Promise<ProductWithRelations[]> {
         let query = supabase
             .from('products')
