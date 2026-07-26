@@ -212,6 +212,8 @@ Product upload details:
 
 All dynamic admin routes require both a valid access token and `role: "admin"` in the token payload.
 
+The `users` resource never exposes or accepts `password_hash`: list/get responses omit the column entirely, and create/update payloads silently drop it if sent. This CRUD engine performs raw inserts/updates with no hashing, so `POST /admin/users` cannot create a usable account — real accounts must go through `/auth/register` (Argon2-hashed); use `PATCH /user/me/password` to change a password.
+
 | Method   | Path                   | Description                                           |
 | -------- | ---------------------- | ----------------------------------------------------- |
 | `GET`    | `/admin`               | List configured admin resources.                      |

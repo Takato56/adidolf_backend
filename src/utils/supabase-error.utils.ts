@@ -28,6 +28,11 @@ export const toDatabaseError = (error: SupabaseErrorLike): AppError => {
                 'Record violates a database check constraint',
                 400
             );
+        case '23502':
+            return new AppError(
+                'Missing required field for this record',
+                400
+            );
         default:
             return new AppError(error.message, 500);
     }
