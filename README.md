@@ -216,6 +216,18 @@ Product upload details:
 - Optional metadata fields: `alt_text`, `is_primary`, `sort_order`
 - For multiple files, metadata fields may be repeated and are matched by file order.
 
+## Review Routes
+
+| Method   | Path                          | Auth               | Description                                                                 |
+| -------- | ----------------------------- | ------------------- | ---------------------------------------------------------------------------- |
+| `GET`    | `/products/:id/reviews`       | Public              | List approved (`is_approved = true`) reviews for a product, with the reviewer's name. Paginated (`limit`/`offset`/`page`). |
+| `POST`   | `/products/:id/reviews`       | Access token        | Submit `{ rating, comment?, order_item_id? }`. Only allowed if the user has a `delivered` order containing this product. |
+| `PATCH`  | `/reviews/:id`                | Owner               | Edit your own review; resets `is_approved` to `false`.                       |
+| `DELETE` | `/reviews/:id`                | Owner or admin      | Delete a review.                                                              |
+| `PATCH`  | `/admin/reviews/:id/approve`  | Admin               | Set `{ is_approved: boolean }` to approve or unapprove a review.             |
+
+If `order_item_id` is provided, it must reference a `delivered` order item of the current user for that exact product, and each order item can only be reviewed once (`409` if already reviewed). Without `order_item_id`, the user must have at least one `delivered` order item for the product.
+
 ## Admin Stats
 
 | Method | Path                     | Auth  | Description                                                                                          |
