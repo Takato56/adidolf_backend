@@ -2,10 +2,15 @@ import express, { type Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import { env } from './config/env.config.js';
-import authRoutes from './routes/auth.routes.js';
-import productRoutes from './routes/product.routes.js';
-import { errorMiddleware } from './middleware/error.middleware.js';
+import { env } from './config/env.config';
+import authRoutes from './routes/auth.routes';
+import productRoutes from './routes/product.routes';
+import userRoutes from './routes/user.routes';
+import categoryRoutes from './routes/category.routes';
+import adminRoutes from './routes/admin.routes';
+import { errorMiddleware } from './middleware/error.middleware';
+import { authMiddleware } from './middleware/auth.middleware';
+import { adminMiddleware } from './middleware/admin.middleware';
 
 const app: Application = express();
 
@@ -29,17 +34,16 @@ app.get('/health', (_req, res) => {
 // Public
 app.use('/auth', authRoutes);
 app.use('/products', productRoutes);
-// app.use('/categories', categoryRoutes);
+app.use('/categories', categoryRoutes);
 
 // Authenticated users
-// app.use('/profile',  authMiddleware, profileRoutes);
-// import { authMiddleware } from './middleware/auth.middleware.js';
+app.use('/user', userRoutes);
 // app.use('/cart',     authMiddleware, cartRoutes);
 // app.use('/orders',   authMiddleware, orderRoutes);
 // app.use('/wishlist', authMiddleware, wishlistRoutes);
 
 // Admin only
-// app.use('/admin', authMiddleware, adminMiddleware, adminRoutes);
+app.use('/admin', authMiddleware, adminMiddleware, adminRoutes);
 
 // Error handler
 app.use(errorMiddleware);

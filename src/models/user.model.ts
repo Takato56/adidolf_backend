@@ -1,5 +1,14 @@
-import { supabase } from '../config/database/supabase.config';
-import { type User, type UpdateUserDto } from '../types/user.types.js';
+import { supabase } from '../config/supabase.config';
+import {
+    type User,
+    type UpdateUserDto,
+    PublicUser
+} from '../types/user.types.js';
+import { RegisterDto } from '../types/auth.types.js';
+import {
+    isSupabaseNotFound,
+    toDatabaseError
+} from '../utils/supabase-error.utils.js';
 
 const UserModel = {
     async findAll(): Promise<User[]> {
@@ -8,7 +17,7 @@ const UserModel = {
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (error) throw new Error(error.message);
+        if (error) throw toDatabaseError(error);
         return data;
     },
 
@@ -19,7 +28,8 @@ const UserModel = {
             .eq('user_id', id)
             .single();
 
-        if (error) return null;
+        if (isSupabaseNotFound(error)) return null;
+        if (error) throw toDatabaseError(error);
         return data;
     },
 
@@ -30,7 +40,21 @@ const UserModel = {
             .eq('email', email)
             .single();
 
-        if (error) return null;
+        if (isSupabaseNotFound(error)) return null;
+        if (error) throw toDatabaseError(error);
+        return data;
+    },
+
+    async create(dto: RegisterDto): Promise<PublicUser> {
+        const { data, error } = await supabase
+            .from('users')
+            .insert(dto)
+            .select(
+                'user_id, email, full_name, phone, avatar_url, role, is_active, created_at'
+            )
+            .single();
+
+        if (error) throw toDatabaseError(error);
         return data;
     },
 
@@ -42,7 +66,7 @@ const UserModel = {
             .select()
             .single();
 
-        if (error) throw new Error(error.message);
+        if (error) throw toDatabaseError(error);
         return data;
     },
 
@@ -52,7 +76,7 @@ const UserModel = {
             .delete()
             .eq('user_id', id);
 
-        if (error) throw new Error(error.message);
+        if (error) throw toDatabaseError(error);
     }
 };
 
