@@ -9,6 +9,8 @@ import userRoutes from './routes/user.routes';
 import categoryRoutes from './routes/category.routes';
 import adminRoutes from './routes/admin.routes';
 import cartRoutes from './routes/cart.routes';
+import voucherRoutes from './routes/voucher.routes';
+import orderRoutes from './routes/order.routes';
 import { errorMiddleware } from './middleware/error.middleware';
 import { authMiddleware } from './middleware/auth.middleware';
 import { adminMiddleware } from './middleware/admin.middleware';
@@ -40,7 +42,8 @@ app.use('/categories', categoryRoutes);
 // Authenticated users
 app.use('/user', userRoutes);
 app.use('/cart', authMiddleware, cartRoutes);
-// app.use('/orders',   authMiddleware, orderRoutes);
+app.use('/vouchers', authMiddleware, voucherRoutes);
+app.use('/orders', authMiddleware, orderRoutes);
 // app.use('/wishlist', authMiddleware, wishlistRoutes);
 
 // Admin only

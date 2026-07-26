@@ -161,6 +161,14 @@ All cart routes require an access token and operate on the current user's own ca
 
 Business rules: only published products can be added; the variant must belong to the given product; quantity must be positive and cannot exceed `product_variants.stock_quantity`; unit price is always computed server-side as `products.base_price + product_variants.extra_price`.
 
+## Voucher Routes
+
+| Method | Path                | Auth         | Description                                                                 |
+| ------ | ------------------- | ------------ | ---------------------------------------------------------------------------- |
+| `POST` | `/vouchers/validate` | Access token | Validate `{ code }` against the current user's own cart subtotal (computed server-side); returns `{ valid, discount_amount, reason }`. |
+
+Replaces the old (incorrect) frontend flow of calling the admin-only `/admin/vouchers?code=` endpoint, which 403s for regular customers. A voucher is valid only if it is `is_active`, the current time is within `[valid_from, valid_to]`, the cart subtotal meets `min_order_amount`, `usage_limit` hasn't been reached, `target_user_id` (if set) matches the current user, and this account hasn't already redeemed it before (checked against `voucher_redemptions`). Discount is `subtotal * discount_value / 100` capped by `max_discount` for `percent` vouchers, or a flat `discount_value` for `fixed` vouchers; the final amount never exceeds the subtotal. Unknown/ineligible codes return HTTP 200 with `valid: false` and a `reason`, not an error status. The evaluation logic lives in `services/voucher.service.ts` as a pure, fully unit-tested function.
+
 ## Category Routes
 
 | Method   | Path              | Auth   | Description                                                                   |
