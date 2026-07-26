@@ -5,7 +5,7 @@ export interface User {
     full_name: string;
     phone?: string;
     avatar_url?: string;
-    role: 'customer' | 'admin' | 'staff';
+    role: 'customer' | 'admin';
     is_active: boolean;
     created_at: string;
     updated_at: string;
@@ -18,7 +18,7 @@ export interface PublicUser {
     full_name: string;
     phone?: string;
     avatar_url?: string;
-    role: 'customer' | 'admin' | 'staff';
+    role: 'customer' | 'admin';
     is_active: boolean;
     created_at: string;
 }
@@ -27,4 +27,9 @@ export interface UpdateUserDto {
     full_name?: string;
     phone?: string;
     avatar_url?: string;
+}
+
+export interface ChangePasswordDto {
+    old_password: string;
+    new_password: string;
 }

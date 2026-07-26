@@ -130,11 +130,44 @@ Refresh tokens are stored in an HTTP-only `refreshToken` cookie and persisted in
 | `POST` | `/auth/refresh`  | Refresh cookie | Rotate refresh token and return a new access token.    |
 | `POST` | `/auth/logout`   | Access token   | Delete refresh token if present and clear cookie.      |
 
+`/auth/login`, `/auth/register`, and `/auth/refresh` share one in-memory, per-IP rate limit (10 requests / 15 minutes combined). Exceeding it returns `429`.
+
 ## User Routes
 
-| Method | Path       | Auth         | Description                                                |
-| ------ | ---------- | ------------ | ---------------------------------------------------------- |
-| `GET`  | `/user/me` | Access token | Return the current token payload without sensitive fields. |
+All routes below require an access token (`authMiddleware` is applied for the whole `/user` router).
+
+| Method   | Path                            | Description                                                                     |
+| -------- | -------------------------------- | -------------------------------------------------------------------------------- |
+| `GET`    | `/user/me`                       | Return the full profile from the database (never includes `password_hash`).      |
+| `PATCH`  | `/user/me`                       | Update `full_name`, `phone`, `avatar_url`.                                       |
+| `PATCH`  | `/user/me/password`              | Change password: verifies the old password (Argon2), hashes the new one, and revokes all of the account's refresh tokens. |
+| `GET`    | `/user/addresses`                | List the current user's own addresses.                                           |
+| `POST`   | `/user/addresses`                | Add an address.                                                                  |
+| `PUT`    | `/user/addresses/:id`            | Update an address (ownership checked; ties to the current user).                 |
+| `DELETE` | `/user/addresses/:id`            | Delete an address; blocked with `400` if an order still references it.           |
+| `PATCH`  | `/user/addresses/:id/default`    | Set an address as default and unset the default flag on the account's other addresses. |
+
+## Cart Routes
+
+All cart routes require an access token and operate on the current user's own cart (auto-created on first access, one cart per account).
+
+| Method   | Path                   | Auth         | Description                                                                              |
+| -------- | ---------------------- | ------------ | ----------------------------------------------------------------------------------------- |
+| `GET`    | `/cart`                | Access token | Get the current cart with items, product/variant details, unit prices, and subtotals.     |
+| `POST`   | `/cart/items`          | Access token | Add `{ product_id, variant_id, quantity }`; merges quantity into an existing line.        |
+| `PATCH`  | `/cart/items/:itemId`  | Access token | Set the absolute quantity for one cart line.                                              |
+| `DELETE` | `/cart/items/:itemId`  | Access token | Remove one cart line.                                                                     |
+| `DELETE` | `/cart`                | Access token | Remove all lines from the current cart.                                                   |
+
+Business rules: only published products can be added; the variant must belong to the given product; quantity must be positive and cannot exceed `product_variants.stock_quantity`; unit price is always computed server-side as `products.base_price + product_variants.extra_price`.
+
+## Voucher Routes
+
+| Method | Path                | Auth         | Description                                                                 |
+| ------ | ------------------- | ------------ | ---------------------------------------------------------------------------- |
+| `POST` | `/vouchers/validate` | Access token | Validate `{ code }` against the current user's own cart subtotal (computed server-side); returns `{ valid, discount_amount, reason }`. |
+
+Replaces the old (incorrect) frontend flow of calling the admin-only `/admin/vouchers?code=` endpoint, which 403s for regular customers. A voucher is valid only if it is `is_active`, the current time is within `[valid_from, valid_to]`, the cart subtotal meets `min_order_amount`, `usage_limit` hasn't been reached, `target_user_id` (if set) matches the current user, and this account hasn't already redeemed it before (checked against `voucher_redemptions`). Discount is `subtotal * discount_value / 100` capped by `max_discount` for `percent` vouchers, or a flat `discount_value` for `fixed` vouchers; the final amount never exceeds the subtotal. Unknown/ineligible codes return HTTP 200 with `valid: false` and a `reason`, not an error status. The evaluation logic lives in `services/voucher.service.ts` as a pure, fully unit-tested function.
 
 ## Category Routes
 
@@ -183,9 +216,19 @@ Product upload details:
 - Optional metadata fields: `alt_text`, `is_primary`, `sort_order`
 - For multiple files, metadata fields may be repeated and are matched by file order.
 
+## Admin Stats
+
+| Method | Path                     | Auth  | Description                                                                                          |
+| ------ | ------------------------ | ----- | ------------------------------------------------------------------------------------------------------ |
+| `GET`  | `/admin/stats/overview`  | Admin | Overview stats for the admin dashboard: `totalSales`, `totalOrders`, `activeCustomers`, `revenueGrowth`, and 12-month `salesTrend`/`ordersTrend`/`customersTrend`/`revenueTrend` arrays. |
+
+`totalSales` and `revenueTrend` exclude `cancelled` orders; `totalOrders` and `ordersTrend` count every status. `customersTrend` counts new `customer` sign-ups per month; `salesTrend` sums `order_items.quantity` per month. All computed server-side by the `get_admin_overview_stats()` Postgres function (`database/migrations/003_admin_overview_stats.sql`) to avoid pulling full tables into the app.
+
 ## Dynamic Admin CRUD
 
 All dynamic admin routes require both a valid access token and `role: "admin"` in the token payload.
+
+The `users` resource never exposes or accepts `password_hash`: list/get responses omit the column entirely, and create/update payloads silently drop it if sent. This CRUD engine performs raw inserts/updates with no hashing, so `POST /admin/users` cannot create a usable account — real accounts must go through `/auth/register` (Argon2-hashed); use `PATCH /user/me/password` to change a password.
 
 | Method   | Path                   | Description                                           |
 | -------- | ---------------------- | ----------------------------------------------------- |

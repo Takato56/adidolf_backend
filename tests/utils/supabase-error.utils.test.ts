@@ -27,11 +27,16 @@ describe('supabase error utils', () => {
             message: 'foreign key'
         });
         const check = toDatabaseError({ code: '23514', message: 'check' });
+        const notNull = toDatabaseError({
+            code: '23502',
+            message: 'not null'
+        });
 
         assert.ok(duplicate instanceof AppError);
         assert.equal(duplicate.statusCode, 409);
         assert.equal(foreignKey.statusCode, 400);
         assert.equal(check.statusCode, 400);
+        assert.equal(notNull.statusCode, 400);
     });
 
     it('falls back to the original message for unknown errors', () => {

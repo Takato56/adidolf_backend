@@ -10,9 +10,11 @@ export const CRUD_RESOURCES: CrudResourceConfig[] = [
         primaryKey: 'user_id',
         primaryKeyType: 'number',
         defaultOrder: 'created_at',
+        // Loại bỏ password_hash khỏi mọi phản hồi — CRUD generic không có lý
+        // do gì để trả về hash mật khẩu cho client quản trị.
+        select: 'user_id, email, full_name, phone, avatar_url, role, is_active, created_at, updated_at',
         allowedCreateFields: [
             'email',
-            'password_hash',
             'full_name',
             'phone',
             'avatar_url',
@@ -21,14 +23,17 @@ export const CRUD_RESOURCES: CrudResourceConfig[] = [
         ],
         allowedUpdateFields: [
             'email',
-            'password_hash',
             'full_name',
             'phone',
             'avatar_url',
             'role',
             'is_active'
         ],
-        requiredCreateFields: ['email', 'password_hash', 'full_name'],
+        // password_hash cố tình không có trong danh sách trên: CRUD generic
+        // ghi thẳng giá trị client gửi lên, không băm. Tạo tài khoản phải đi
+        // qua /auth/register (băm bằng Argon2); đổi mật khẩu đi qua
+        // PATCH /user/me/password.
+        requiredCreateFields: ['email', 'full_name'],
         filterFields: ['email', 'role', 'is_active'],
         sortFields: ['user_id', 'email', 'full_name', ...timestamps],
         updatedAtColumn: 'updated_at'
@@ -223,9 +228,9 @@ export const CRUD_RESOURCES: CrudResourceConfig[] = [
         primaryKey: 'cart_id',
         primaryKeyType: 'number',
         defaultOrder: 'created_at',
-        allowedCreateFields: ['user_id', 'session_token'],
-        allowedUpdateFields: ['user_id', 'session_token'],
-        filterFields: ['user_id', 'session_token'],
+        allowedCreateFields: ['user_id'],
+        allowedUpdateFields: ['user_id'],
+        filterFields: ['user_id'],
         sortFields: ['cart_id', 'user_id', ...timestamps],
         updatedAtColumn: 'updated_at'
     },

@@ -15,7 +15,7 @@ const REFRESH_COOKIE = 'refreshToken';
 const COOKIE_OPTIONS = {
     httpOnly: true,
     secure: env.isProd,
-    sameSite: 'strict' as const,
+    sameSite: 'none' as const,
     maxAge: env.REFRESH_TOKEN_MAX_AGE,
     path: '/'
 };
