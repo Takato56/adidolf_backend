@@ -136,6 +136,20 @@ Refresh tokens are stored in an HTTP-only `refreshToken` cookie and persisted in
 | ------ | ---------- | ------------ | ---------------------------------------------------------- |
 | `GET`  | `/user/me` | Access token | Return the current token payload without sensitive fields. |
 
+## Cart Routes
+
+All cart routes require an access token and operate on the current user's own cart (auto-created on first access, one cart per account).
+
+| Method   | Path                   | Auth         | Description                                                                              |
+| -------- | ---------------------- | ------------ | ----------------------------------------------------------------------------------------- |
+| `GET`    | `/cart`                | Access token | Get the current cart with items, product/variant details, unit prices, and subtotals.     |
+| `POST`   | `/cart/items`          | Access token | Add `{ product_id, variant_id, quantity }`; merges quantity into an existing line.        |
+| `PATCH`  | `/cart/items/:itemId`  | Access token | Set the absolute quantity for one cart line.                                              |
+| `DELETE` | `/cart/items/:itemId`  | Access token | Remove one cart line.                                                                     |
+| `DELETE` | `/cart`                | Access token | Remove all lines from the current cart.                                                   |
+
+Business rules: only published products can be added; the variant must belong to the given product; quantity must be positive and cannot exceed `product_variants.stock_quantity`; unit price is always computed server-side as `products.base_price + product_variants.extra_price`.
+
 ## Category Routes
 
 | Method   | Path              | Auth   | Description                                                                   |

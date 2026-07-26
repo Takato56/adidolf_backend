@@ -223,9 +223,9 @@ export const CRUD_RESOURCES: CrudResourceConfig[] = [
         primaryKey: 'cart_id',
         primaryKeyType: 'number',
         defaultOrder: 'created_at',
-        allowedCreateFields: ['user_id', 'session_token'],
-        allowedUpdateFields: ['user_id', 'session_token'],
-        filterFields: ['user_id', 'session_token'],
+        allowedCreateFields: ['user_id'],
+        allowedUpdateFields: ['user_id'],
+        filterFields: ['user_id'],
         sortFields: ['cart_id', 'user_id', ...timestamps],
         updatedAtColumn: 'updated_at'
     },
