@@ -1,15 +1,8 @@
 import { type Request, type Response } from 'express';
-import UserModel from '../models/user.model.js';
-import RefreshTokenModel from '../models/userToken.model.js';
 import { AppError } from '../middleware/error.middleware.js';
-import {
-    hashPassword,
-    comparePassword,
-    generateTokens,
-    verifyToken
-} from '../utils/auth.utils.js';
 import { env } from '../config/env.config.js';
 import { registerSchema, loginSchema } from '../validators/auth.validator.js';
+import * as AuthService from '../services/auth.service.js';
 
 const REFRESH_COOKIE = 'refreshToken';
 const COOKIE_OPTIONS = {
@@ -20,121 +13,57 @@ const COOKIE_OPTIONS = {
     path: '/'
 };
 
+const requireUserId = (req: Request): number => {
+    if (!req.user) throw new AppError('Unauthorized', 401);
+    return Number(req.user.userId);
+};
+
 export const register = async (req: Request, res: Response) => {
-    const parsed = registerSchema.safeParse(req.body);
-    if (!parsed.success) {
-        const messages = parsed.error.issues.map((e) => e.message).join(', ');
-        throw new AppError(messages, 400);
-    }
-
-    const { email, password, full_name, phone } = parsed.data;
-
-    const existing = await UserModel.findByEmail(email);
-    if (existing) throw new AppError('Email already in use', 409);
-
-    const password_hash = await hashPassword(password);
-
-    const user = await UserModel.create({
-        email,
-        password_hash,
-        full_name,
-        phone
-    });
+    const dto = registerSchema.parse(req.body);
+    const user = await AuthService.registerUser(dto);
 
     res.status(201).json({ status: 'success', user });
 };
 
 export const login = async (req: Request, res: Response) => {
-    const parsed = loginSchema.safeParse(req.body);
-    if (!parsed.success) {
-        const messages = parsed.error.issues.map((e) => e.message).join(', ');
-        throw new AppError(messages, 400);
-    }
+    const dto = loginSchema.parse(req.body);
+    const { tokens, user } = await AuthService.loginUser(dto);
 
-    const { email, password } = parsed.data;
-
-    const user = await UserModel.findByEmail(email);
-    if (!user) throw new AppError('Invalid credentials', 401);
-
-    const valid = await comparePassword(password, user.password_hash);
-    if (!valid) throw new AppError('Invalid credentials', 401);
-
-    const { accessToken, refreshToken } = generateTokens({
-        userId: user.user_id,
-        email: user.email,
-        role: user.role
-    });
-
-    res.cookie(REFRESH_COOKIE, refreshToken, COOKIE_OPTIONS);
-
-    // Store refresh token in Supabase users_tokens table.
-    await RefreshTokenModel.create({
-        userId: user.user_id,
-        token: refreshToken,
-        expiresAt: new Date(Date.now() + env.REFRESH_TOKEN_MAX_AGE) // Match COOKIE_OPTIONS.maxAge
-    });
-
+    res.cookie(REFRESH_COOKIE, tokens.refreshToken, COOKIE_OPTIONS);
     res.json({
         status: 'success',
-        data: {
-            accessToken,
-            user: {
-                email: user.email,
-                full_name: user.full_name,
-                role: user.role
-            }
-        }
+        data: { accessToken: tokens.accessToken, user }
     });
 };
 
 export const refresh = async (req: Request, res: Response) => {
     const token: string | undefined = req.cookies?.[REFRESH_COOKIE];
-    if (!token) throw new AppError('No refresh token', 401);
 
-    let payload;
     try {
-        payload = verifyToken(token, 'refresh');
-
-        // Check if token exists in Supabase users_tokens table.
-        const storedToken = await RefreshTokenModel.findOne({ token });
-        if (!storedToken) {
-            throw new Error('Token not found in database');
-        }
-        if (
-            storedToken.expired_in &&
-            new Date(storedToken.expired_in).getTime() <= Date.now()
-        ) {
-            throw new Error('Token expired in database');
-        }
-    } catch {
-        await RefreshTokenModel.deleteOne({ token });
+        const tokens = await AuthService.refreshTokens(token);
+        res.cookie(REFRESH_COOKIE, tokens.refreshToken, COOKIE_OPTIONS);
+        res.json({
+            status: 'success',
+            data: { accessToken: tokens.accessToken }
+        });
+    } catch (error) {
         res.clearCookie(REFRESH_COOKIE, { path: '/' });
-        throw new AppError('Refresh token expired or invalid', 403);
+        throw error;
     }
-
-    const { accessToken, refreshToken: newRefreshToken } = generateTokens({
-        userId: payload.userId,
-        email: payload.email,
-        role: payload.role
-    });
-
-    // Replace old token with new one in Supabase (token rotation).
-    await RefreshTokenModel.deleteOne({ token });
-    await RefreshTokenModel.create({
-        userId: payload.userId,
-        token: newRefreshToken,
-        expiresAt: new Date(Date.now() + env.REFRESH_TOKEN_MAX_AGE)
-    });
-
-    res.cookie(REFRESH_COOKIE, newRefreshToken, COOKIE_OPTIONS);
-    res.json({ status: 'success', data: { accessToken } });
 };
 
 export const logout = async (req: Request, res: Response) => {
     const token: string | undefined = req.cookies?.[REFRESH_COOKIE];
-    if (token) {
-        await RefreshTokenModel.deleteOne({ token });
-    }
+    await AuthService.logoutUser(token);
+
     res.clearCookie(REFRESH_COOKIE, { path: '/' });
     res.json({ status: 'success', message: 'Logged out' });
+};
+
+export const logoutAll = async (req: Request, res: Response) => {
+    const userId = requireUserId(req);
+    await AuthService.logoutAllUser(userId);
+
+    res.clearCookie(REFRESH_COOKIE, { path: '/' });
+    res.json({ status: 'success', message: 'Logged out from all devices' });
 };

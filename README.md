@@ -129,8 +129,11 @@ Refresh tokens are stored in an HTTP-only `refreshToken` cookie and persisted in
 | `POST` | `/auth/login`    | Public         | Login and receive an access token plus refresh cookie. |
 | `POST` | `/auth/refresh`  | Refresh cookie | Rotate refresh token and return a new access token.    |
 | `POST` | `/auth/logout`   | Access token   | Delete refresh token if present and clear cookie.      |
+| `POST` | `/auth/logout-all` | Access token | Revoke every refresh token belonging to the account (all devices/sessions). |
 
-`/auth/login`, `/auth/register`, and `/auth/refresh` share one in-memory, per-IP rate limit (10 requests / 15 minutes combined). Exceeding it returns `429`.
+`/auth/login`, `/auth/register`, and `/auth/refresh` share one in-memory, per-IP rate limit (10 requests / 15 minutes combined). Exceeding it returns `429`. `/auth/logout` and `/auth/logout-all` aren't rate-limited — they require a valid access token already, so brute-force guessing doesn't apply.
+
+Login and refresh both opportunistically delete expired `users_tokens` rows (`expired_in < now()`) as routine housekeeping. Business logic for all of the above lives in `services/auth.service.ts`; the controller only validates input and wires up cookies/responses.
 
 ## User Routes
 
