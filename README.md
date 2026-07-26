@@ -208,6 +208,14 @@ Product upload details:
 - Optional metadata fields: `alt_text`, `is_primary`, `sort_order`
 - For multiple files, metadata fields may be repeated and are matched by file order.
 
+## Admin Stats
+
+| Method | Path                     | Auth  | Description                                                                                          |
+| ------ | ------------------------ | ----- | ------------------------------------------------------------------------------------------------------ |
+| `GET`  | `/admin/stats/overview`  | Admin | Overview stats for the admin dashboard: `totalSales`, `totalOrders`, `activeCustomers`, `revenueGrowth`, and 12-month `salesTrend`/`ordersTrend`/`customersTrend`/`revenueTrend` arrays. |
+
+`totalSales` and `revenueTrend` exclude `cancelled` orders; `totalOrders` and `ordersTrend` count every status. `customersTrend` counts new `customer` sign-ups per month; `salesTrend` sums `order_items.quantity` per month. All computed server-side by the `get_admin_overview_stats()` Postgres function (`database/migrations/003_admin_overview_stats.sql`) to avoid pulling full tables into the app.
+
 ## Dynamic Admin CRUD
 
 All dynamic admin routes require both a valid access token and `role: "admin"` in the token payload.

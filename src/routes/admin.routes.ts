@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { CRUD_RESOURCES } from '../config/resource.config.js';
 import { createCrudController } from '../controllers/crud.controller.js';
+import { getOverviewStats } from '../controllers/adminStats.controller.js';
 
 const router = Router();
 
@@ -15,6 +16,8 @@ router.get('/', (_req, res) => {
         }))
     });
 });
+
+router.get('/stats/overview', getOverviewStats);
 
 CRUD_RESOURCES.forEach((resource) => {
     const controller = createCrudController(resource);
