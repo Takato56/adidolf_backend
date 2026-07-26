@@ -72,6 +72,16 @@ const UserTokenModel = {
         if (error) throw toDatabaseError(error);
     },
 
+    /** Hủy toàn bộ refresh token của một tài khoản (đổi mật khẩu, logout-all). */
+    async deleteAllForUser(userId: number): Promise<void> {
+        const { error } = await supabase
+            .from(TABLE)
+            .delete()
+            .eq('user_id', userId);
+
+        if (error) throw toDatabaseError(error);
+    },
+
     async deleteExpired(): Promise<void> {
         const { error } = await supabase
             .from(TABLE)

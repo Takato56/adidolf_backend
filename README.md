@@ -134,9 +134,18 @@ Refresh tokens are stored in an HTTP-only `refreshToken` cookie and persisted in
 
 ## User Routes
 
-| Method | Path       | Auth         | Description                                                |
-| ------ | ---------- | ------------ | ---------------------------------------------------------- |
-| `GET`  | `/user/me` | Access token | Return the current token payload without sensitive fields. |
+All routes below require an access token (`authMiddleware` is applied for the whole `/user` router).
+
+| Method   | Path                            | Description                                                                     |
+| -------- | -------------------------------- | -------------------------------------------------------------------------------- |
+| `GET`    | `/user/me`                       | Return the full profile from the database (never includes `password_hash`).      |
+| `PATCH`  | `/user/me`                       | Update `full_name`, `phone`, `avatar_url`.                                       |
+| `PATCH`  | `/user/me/password`              | Change password: verifies the old password (Argon2), hashes the new one, and revokes all of the account's refresh tokens. |
+| `GET`    | `/user/addresses`                | List the current user's own addresses.                                           |
+| `POST`   | `/user/addresses`                | Add an address.                                                                  |
+| `PUT`    | `/user/addresses/:id`            | Update an address (ownership checked; ties to the current user).                 |
+| `DELETE` | `/user/addresses/:id`            | Delete an address; blocked with `400` if an order still references it.           |
+| `PATCH`  | `/user/addresses/:id/default`    | Set an address as default and unset the default flag on the account's other addresses. |
 
 ## Cart Routes
 

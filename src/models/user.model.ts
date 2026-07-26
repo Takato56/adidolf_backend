@@ -10,6 +10,10 @@ import {
     toDatabaseError
 } from '../utils/supabase-error.utils.js';
 
+/** Danh sách cột an toàn để trả về client — không bao giờ gồm password_hash. */
+const PUBLIC_COLUMNS =
+    'user_id, email, full_name, phone, avatar_url, role, is_active, created_at';
+
 const UserModel = {
     async findAll(): Promise<User[]> {
         const { data, error } = await supabase
@@ -74,6 +78,45 @@ const UserModel = {
         const { error } = await supabase
             .from('users')
             .delete()
+            .eq('user_id', id);
+
+        if (error) throw toDatabaseError(error);
+    },
+
+    /** Hồ sơ đầy đủ cho GET /user/me — loại bỏ password_hash ngay từ truy vấn. */
+    async findPublicById(id: number): Promise<PublicUser | null> {
+        const { data, error } = await supabase
+            .from('users')
+            .select(PUBLIC_COLUMNS)
+            .eq('user_id', id)
+            .maybeSingle();
+
+        if (isSupabaseNotFound(error)) return null;
+        if (error) throw toDatabaseError(error);
+        return data as PublicUser | null;
+    },
+
+    /** PATCH /user/me — chỉ cập nhật các trường hồ sơ, không đụng password_hash. */
+    async updateProfile(id: number, dto: UpdateUserDto): Promise<PublicUser> {
+        const { data, error } = await supabase
+            .from('users')
+            .update({ ...dto, updated_at: new Date().toISOString() })
+            .eq('user_id', id)
+            .select(PUBLIC_COLUMNS)
+            .single();
+
+        if (error) throw toDatabaseError(error);
+        return data as PublicUser;
+    },
+
+    /** PATCH /user/me/password — chỉ ghi password_hash đã băm sẵn. */
+    async updatePasswordHash(id: number, passwordHash: string): Promise<void> {
+        const { error } = await supabase
+            .from('users')
+            .update({
+                password_hash: passwordHash,
+                updated_at: new Date().toISOString()
+            })
             .eq('user_id', id);
 
         if (error) throw toDatabaseError(error);
